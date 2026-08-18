@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run lint
+
+      - run: pnpm run tsc
+
+      # Also runs check:isolation and check:prefix: that the built
+      # output imports nothing but React, and that every Tailwind class is
+      # prefixed so it cannot collide with the host application's styles.
+      - run: pnpm run build
+
+      # Fails if the published tarball would be missing an entry point.
+      - run: npm pack --dry-run

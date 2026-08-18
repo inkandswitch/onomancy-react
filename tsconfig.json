@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    /* NodeNext rather than bundler resolution, so TypeScript holds relative
+       imports to the explicit .js extensions Node's ESM loader requires. A
+       published package has to resolve without a bundler in front of it. */
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
