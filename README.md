@@ -126,8 +126,8 @@ Publishing is manual.
 ```
 pnpm install
 pnpm build
-npm pack --dry-run     # check what ships
-npm publish            # publishConfig.access is already public
+npm publish --dry-run --tag next   # check what ships
+npm publish --tag next             # publishConfig.access is already public
 ```
 
 Bump `version` in `package.json` and tag the commit `v<version>`.
