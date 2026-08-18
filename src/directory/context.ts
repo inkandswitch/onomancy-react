@@ -3,7 +3,7 @@ import {
   emptyDirectory,
   type DirectoryEntry,
   type NameDirectory,
-} from "./types";
+} from "./types.js";
 
 export interface DirectoryContextValue {
   directory: NameDirectory;

@@ -3,7 +3,7 @@ import type {
   DirectoryEntryKind,
   DirectoryTrust,
   NameDirectory,
-} from "./types";
+} from "./types.js";
 
 /** Hex-encoded keyhive id to display information. */
 export type DirectoryDoc = Record<

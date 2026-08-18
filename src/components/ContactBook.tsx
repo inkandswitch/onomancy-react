@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { shortId, useDirectory } from "../directory/context";
-import type { DirectoryEntry, DirectoryEntryKind } from "../directory/types";
-import { Avatar } from "./primitives/Avatar";
+import { shortId, useDirectory } from "../directory/context.js";
+import type { DirectoryEntry, DirectoryEntryKind } from "../directory/types.js";
+import { Avatar } from "./primitives/Avatar.js";
 
 export interface ContactBookProps {
   /** Called with the entry the reader picked. */

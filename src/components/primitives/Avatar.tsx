@@ -1,4 +1,4 @@
-import { useAvatarUrl } from "../../hooks/useAvatarUrl";
+import { useAvatarUrl } from "../../hooks/useAvatarUrl.js";
 
 export interface AvatarProps {
   avatar?: Uint8Array | null;

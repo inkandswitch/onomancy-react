@@ -1,7 +1,7 @@
-import type { DirectoryEntry } from "../directory/types";
-import { useSelfIdentity, type KeyhiveHive } from "../hooks/useSelfIdentity";
-import { CopyableField } from "./primitives/CopyableField";
-import { ProfileEditor } from "./ProfileEditor";
+import type { DirectoryEntry } from "../directory/types.js";
+import { useSelfIdentity, type KeyhiveHive } from "../hooks/useSelfIdentity.js";
+import { CopyableField } from "./primitives/CopyableField.js";
+import { ProfileEditor } from "./ProfileEditor.js";
 
 export interface AccountViewProps {
   hive: KeyhiveHive;

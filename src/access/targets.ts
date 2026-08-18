@@ -7,8 +7,8 @@ import type {
   Group,
 } from "@automerge/automerge-repo-keyhive";
 import type { AutomergeUrl } from "@automerge/react/slim";
-import { bytesToHex, hexToBytes } from "../bytes";
-import type { KeyhiveRuntime } from "../runtime";
+import { bytesToHex, hexToBytes } from "../bytes.js";
+import type { KeyhiveRuntime } from "../runtime.js";
 
 export type AgentKind = "individual" | "group" | "document" | "unknown";
 

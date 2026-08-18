@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Access } from "@automerge/automerge-repo-keyhive";
-import type { AccessTarget, TargetMember } from "./targets";
+import type { AccessTarget, TargetMember } from "./targets.js";
 
 export interface TargetMembersState {
   /** One entry per direct delegation. */

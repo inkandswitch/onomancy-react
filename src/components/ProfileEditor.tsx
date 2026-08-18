@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { useDirectory, useDirectoryEntry } from "../directory/context";
-import type { DirectoryEntry, DirectoryEntryKind } from "../directory/types";
-import { Avatar } from "./primitives/Avatar";
+import { useDirectory, useDirectoryEntry } from "../directory/context.js";
+import type { DirectoryEntry, DirectoryEntryKind } from "../directory/types.js";
+import { Avatar } from "./primitives/Avatar.js";
 
 export interface ProfileEditorProps {
   /** Hex-encoded keyhive id whose directory entry this edits. */

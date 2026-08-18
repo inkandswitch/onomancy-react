@@ -4,8 +4,8 @@ import {
   type AutomergeDocDirectoryOptions,
   type DirectoryDoc,
   type DirectoryDocChange,
-} from "./automerge-directory";
-import type { NameDirectory } from "./types";
+} from "./automerge-directory.js";
+import type { NameDirectory } from "./types.js";
 
 /**
  * `createAutomergeDocDirectory` memoized on the document, so the directory

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { shortId, useDirectory } from "../directory/context";
-import type { DirectoryEntry, NameDirectory } from "../directory/types";
+import { shortId, useDirectory } from "../directory/context.js";
+import type { DirectoryEntry, NameDirectory } from "../directory/types.js";
 import {
   grantableLevels,
   type AccessTarget,
   type TargetMember,
-} from "../access/targets";
-import { useTargetMembers } from "../access/useTargetMembers";
-import { ContactBook } from "./ContactBook";
-import { AccessBadge } from "./primitives/AccessBadge";
-import { Avatar } from "./primitives/Avatar";
+} from "../access/targets.js";
+import { useTargetMembers } from "../access/useTargetMembers.js";
+import { ContactBook } from "./ContactBook.js";
+import { AccessBadge } from "./primitives/AccessBadge.js";
+import { Avatar } from "./primitives/Avatar.js";
 
 export interface AccessEditorProps {
   /** The document or group whose membership is being edited. */

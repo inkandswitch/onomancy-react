@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { DirectoryContext } from "../directory/context";
-import type { NameDirectory } from "../directory/types";
+import { DirectoryContext } from "../directory/context.js";
+import type { NameDirectory } from "../directory/types.js";
 
 export interface DirectoryProviderProps {
   directory: NameDirectory;
