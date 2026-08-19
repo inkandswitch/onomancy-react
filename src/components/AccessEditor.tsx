@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { shortId, useDirectory } from "../directory/context.js";
 import type { DirectoryEntry, NameDirectory } from "../directory/types.js";
 import {
@@ -36,6 +36,8 @@ export interface AccessEditorProps {
   publicAccessLevel?: "relay" | "read" | "edit" | "admin";
   fallbackAvatarSrc?: string;
   className?: string;
+  /** Rendered under the add-member form, with the level the user has picked. */
+  renderAfterAdd?: (context: { selectedLevel: string }) => ReactNode;
 }
 
 function memberLabel(
@@ -69,6 +71,7 @@ export function AccessEditor({
   publicAccessLevel = "edit",
   fallbackAvatarSrc,
   className = "",
+  renderAfterAdd,
 }: AccessEditorProps) {
   const directory = useDirectory();
   const runtime = target.runtime;
@@ -218,6 +221,10 @@ export function AccessEditor({
             fallbackAvatarSrc={fallbackAvatarSrc}
           />
         </div>
+      )}
+
+      {canDelegate && renderAfterAdd && (
+        <div className="kh-mb-6">{renderAfterAdd({ selectedLevel })}</div>
       )}
 
       {(error || loadError) && (
