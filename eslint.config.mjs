@@ -41,7 +41,13 @@ const automergeSlimImportRule = {
 
 export default [
   {
-    ignores: ["**/*.d.ts", "dist/*", "node_modules/*", "eslint.config.mjs"],
+    ignores: [
+      "**/*.d.ts",
+      "**/dist/*",
+      "**/node_modules/*",
+      "eslint.config.mjs",
+      "**/vite.config.ts",
+    ],
   },
   js.configs.recommended,
   ...compat.extends(
@@ -49,7 +55,13 @@ export default [
     "plugin:@typescript-eslint/recommended"
   ),
   {
-    files: ["src/**/*.ts", "src/**/*.tsx"],
+    files: [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "apps/*/src/**/*.ts",
+      "apps/*/src/**/*.tsx",
+      "e2e/**/*.ts",
+    ],
 
     plugins: {
       "@typescript-eslint": typescriptEslint,
@@ -64,7 +76,13 @@ export default [
       parser: tsParser,
       ecmaVersion: "latest",
       sourceType: "module",
-      parserOptions: { project: ["./tsconfig.json"] },
+      parserOptions: {
+        project: [
+          "./tsconfig.json",
+          "./apps/component-test-app/tsconfig.json",
+          "./e2e/tsconfig.json",
+        ],
+      },
     },
 
     rules: {

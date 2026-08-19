@@ -31,3 +31,22 @@ jobs:
 
       # Fails if the published tarball would be missing an entry point.
       - run: npm pack --dry-run
+
+      # A consumer compiled against the build above.
+      - run: pnpm run app:build
+
+      - run: pnpm run tsc:e2e
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      # Drives the test app in a browser. The components mount, the stylesheet
+      # resolves, and granting and revoking change what the editor
+      # shows. Two browser contexts are two keyhive identities.
+      - run: pnpm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
