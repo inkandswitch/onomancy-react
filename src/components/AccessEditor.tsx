@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { shortId, useDirectory } from "../directory/context.js";
 import type { DirectoryEntry, NameDirectory } from "../directory/types.js";
 import {
@@ -36,6 +36,8 @@ export interface AccessEditorProps {
   publicAccessLevel?: "relay" | "read" | "edit" | "admin";
   fallbackAvatarSrc?: string;
   className?: string;
+  /** Rendered under the add-member form, with the level the user has picked. */
+  renderAfterAdd?: (context: { selectedLevel: string }) => ReactNode;
 }
 
 function memberLabel(
@@ -69,6 +71,7 @@ export function AccessEditor({
   publicAccessLevel = "edit",
   fallbackAvatarSrc,
   className = "",
+  renderAfterAdd,
 }: AccessEditorProps) {
   const directory = useDirectory();
   const runtime = target.runtime;
@@ -123,7 +126,12 @@ export function AccessEditor({
     [members, directory, labelForMember]
   );
 
+  // We need to ensure only one is running at a time or the second can be lost.
+  const inFlight = useRef(false);
+
   const run = async (taskDescription: string, task: () => Promise<void>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setError(null);
     setIsBusy(true);
     try {
@@ -136,6 +144,7 @@ export function AccessEditor({
         `Could not ${taskDescription}: ${err instanceof Error ? err.message : String(err)}`
       );
     } finally {
+      inFlight.current = false;
       setIsBusy(false);
     }
   };
@@ -193,7 +202,7 @@ export function AccessEditor({
               disabled={isBusy}
               className="kh-px-4 kh-py-2 kh-bg-secondary kh-text-secondary-foreground kh-text-sm kh-font-medium kh-rounded-md hover:kh-bg-accent focus:kh-outline-none focus:kh-ring-2 focus:kh-ring-offset-2 focus:kh-ring-ring kh-transition-colors kh-border kh-border-border disabled:kh-opacity-50"
             >
-              Add
+              {isBusy ? "Adding..." : "Add"}
             </button>
           </div>
         </form>
@@ -212,6 +221,10 @@ export function AccessEditor({
             fallbackAvatarSrc={fallbackAvatarSrc}
           />
         </div>
+      )}
+
+      {canDelegate && renderAfterAdd && (
+        <div className="kh-mb-6">{renderAfterAdd({ selectedLevel })}</div>
       )}
 
       {(error || loadError) && (
