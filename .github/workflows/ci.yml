@@ -31,3 +31,6 @@ jobs:
 
       # Fails if the published tarball would be missing an entry point.
       - run: npm pack --dry-run
+
+      # A consumer compiled against the build above.
+      - run: pnpm run app:build

@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+
+# One instance of each WASM-backed package, so the app and the library see the
+# same keyhive.
+overrides:
+  "@automerge/automerge-repo": 2.6.0-subduction.40
+  "@automerge/automerge-subduction": 0.16.0
+
+onlyBuiltDependencies:
+  - esbuild

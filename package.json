@@ -54,7 +54,9 @@
     "lint:fix": "eslint . --fix && prettier --write \"**/*.{ts,tsx,js,mjs,json,css,md}\"",
     "dev": "tsc -p tsconfig.build.json --watch",
     "clean": "rm -rf dist",
-    "prepack": "pnpm run build"
+    "prepack": "pnpm run build",
+    "app": "pnpm --filter component-test-app dev",
+    "app:build": "pnpm --filter component-test-app build"
   },
   "peerDependencies": {
     "@automerge/automerge-repo-keyhive": "0.5.0-alpha.3",
