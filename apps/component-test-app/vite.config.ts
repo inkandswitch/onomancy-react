@@ -24,6 +24,16 @@ export default defineConfig({
     port: 5558,
     open: true,
   },
+  preview: {
+    // Pinned to IPv4 rather than left as "localhost". That name resolves to
+    // ::1 first on macOS and 127.0.0.1 first on Linux. This means the server binds to
+    // one stack and anything probing the other waits forever. Playwright's
+    // readiness check is one such prober.
+    host: "127.0.0.1",
+    port: 4173,
+    strictPort: true,
+    open: false,
+  },
   build: {
     target: "esnext",
     assetsInlineLimit: 100000,

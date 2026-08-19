@@ -56,7 +56,11 @@
     "clean": "rm -rf dist",
     "prepack": "pnpm run build",
     "app": "pnpm --filter component-test-app dev",
-    "app:build": "pnpm --filter component-test-app build"
+    "app:build": "pnpm --filter component-test-app build",
+    "app:preview": "pnpm --filter component-test-app preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "tsc:e2e": "tsc -p e2e/tsconfig.json"
   },
   "peerDependencies": {
     "@automerge/automerge-repo-keyhive": "0.5.0-alpha.3",
@@ -68,6 +72,8 @@
     "@automerge/react": "2.6.0-subduction.40",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "1.60.0",
+    "@types/node": "22.19.4",
     "@types/react": "^18.3.25",
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",

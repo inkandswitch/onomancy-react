@@ -60,6 +60,7 @@ export default [
       "src/**/*.tsx",
       "apps/*/src/**/*.ts",
       "apps/*/src/**/*.tsx",
+      "e2e/**/*.ts",
     ],
 
     plugins: {
@@ -76,7 +77,11 @@ export default [
       ecmaVersion: "latest",
       sourceType: "module",
       parserOptions: {
-        project: ["./tsconfig.json", "./apps/component-test-app/tsconfig.json"],
+        project: [
+          "./tsconfig.json",
+          "./apps/component-test-app/tsconfig.json",
+          "./e2e/tsconfig.json",
+        ],
       },
     },
 
