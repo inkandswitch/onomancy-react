@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { shortId, useDirectory } from "../directory/context.js";
 import type { DirectoryEntry, NameDirectory } from "../directory/types.js";
 import {
@@ -123,7 +123,12 @@ export function AccessEditor({
     [members, directory, labelForMember]
   );
 
+  // We need to ensure only one is running at a time or the second can be lost.
+  const inFlight = useRef(false);
+
   const run = async (taskDescription: string, task: () => Promise<void>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setError(null);
     setIsBusy(true);
     try {
@@ -136,6 +141,7 @@ export function AccessEditor({
         `Could not ${taskDescription}: ${err instanceof Error ? err.message : String(err)}`
       );
     } finally {
+      inFlight.current = false;
       setIsBusy(false);
     }
   };
@@ -193,7 +199,7 @@ export function AccessEditor({
               disabled={isBusy}
               className="kh-px-4 kh-py-2 kh-bg-secondary kh-text-secondary-foreground kh-text-sm kh-font-medium kh-rounded-md hover:kh-bg-accent focus:kh-outline-none focus:kh-ring-2 focus:kh-ring-offset-2 focus:kh-ring-ring kh-transition-colors kh-border kh-border-border disabled:kh-opacity-50"
             >
-              Add
+              {isBusy ? "Adding..." : "Add"}
             </button>
           </div>
         </form>
