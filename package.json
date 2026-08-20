@@ -1,6 +1,6 @@
 {
   "name": "@automerge/keyhive-react",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "React components and hooks for keyhive access control.",
   "license": "MIT",
   "repository": {
