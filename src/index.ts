@@ -29,7 +29,7 @@ export type {
 } from "./directory/automerge-directory.js";
 export { useAutomergeDocDirectory } from "./directory/useAutomergeDocDirectory.js";
 
-// DNS name verification lives in `@automerge/keyhive-react/onomancy`. This
+// DNS name verification lives in `@inkandswitch/onomancy-react/onomancy`. This
 // entry point knows what a claim is and how to render one; it does not
 // resolve anything. `DnsNameStatus` carries the rules a status must follow,
 // whoever computes it.

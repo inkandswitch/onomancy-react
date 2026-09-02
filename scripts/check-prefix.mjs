@@ -70,7 +70,7 @@ const unprefixed = [...new Set(generated)]
 if (unprefixed.length > 0) {
   console.error(
     "These Tailwind classes are used without the kh- prefix, so they are\n" +
-      "missing from dist/keyhive-react.css:\n"
+      "missing from dist/onomancy-react.css:\n"
   );
   for (const name of unprefixed) console.error(`  ${name}`);
   console.error(

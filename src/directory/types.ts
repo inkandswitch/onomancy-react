@@ -156,7 +156,7 @@ export interface DirectoryEntry {
   dnsName?: string;
   /**
    * Set by whatever verifies claims — `createOnomancyDirectory` from
-   * `@automerge/keyhive-react/onomancy`, or the application's own
+   * `@inkandswitch/onomancy-react/onomancy`, or the application's own
    * equivalent. A decoration, never stored: directories strip it on
    * publish. Absent when the entry claims no DNS name, or when nothing in
    * scope verifies.

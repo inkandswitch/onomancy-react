@@ -36,7 +36,7 @@ for (const file of jsFiles(DIST)) {
 
 if (violations.length > 0) {
   console.error(
-    "keyhive-react must not import anything but React at runtime.\n" +
+    "onomancy-react must not import anything but React at runtime.\n" +
       "Take the value from KeyhiveRuntime instead, or use import type.\n"
   );
   for (const violation of violations) console.error(`  ${violation}`);

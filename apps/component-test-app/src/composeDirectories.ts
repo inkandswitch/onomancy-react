@@ -1,4 +1,7 @@
-import type { DirectoryEntry, NameDirectory } from "@automerge/keyhive-react";
+import type {
+  DirectoryEntry,
+  NameDirectory,
+} from "@inkandswitch/onomancy-react";
 
 function definedFields(entry: DirectoryEntry): DirectoryEntry {
   const out = { ...entry };

@@ -1,5 +1,5 @@
 import * as onomancy from "@inkandswitch/onomancy";
-import type { OnomancyModule } from "@automerge/keyhive-react/onomancy";
+import type { OnomancyModule } from "@inkandswitch/onomancy-react/onomancy";
 
 /**
  * Real onomancy for real domains; deterministic outcomes under `.test`, so

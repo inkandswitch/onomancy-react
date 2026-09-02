@@ -25,7 +25,7 @@ export interface ProfileEditorProps {
    * name; the message is shown to the user and nothing is published.
    *
    * Pass `runtime.normalizeDnsName` from
-   * `@automerge/keyhive-react/onomancy` to reject bad claims at entry
+   * `@inkandswitch/onomancy-react/onomancy` to reject bad claims at entry
    * against the real grammar. Without it this field still canonicalises
    * spelling — trimming, lowercasing, dropping a leading `@` and a trailing
    * dot — but cannot tell a hostname from a typo, and an unparseable claim

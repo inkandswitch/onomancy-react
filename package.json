@@ -1,14 +1,14 @@
 {
-  "name": "@automerge/keyhive-react",
+  "name": "@inkandswitch/onomancy-react",
   "version": "0.1.0-alpha.5",
   "description": "React components and hooks for keyhive access control.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jtfmumm/keyhive-react.git"
+    "url": "git+https://github.com/inkandswitch/onomancy-react.git"
   },
-  "homepage": "https://github.com/jtfmumm/keyhive-react#readme",
-  "bugs": "https://github.com/jtfmumm/keyhive-react/issues",
+  "homepage": "https://github.com/inkandswitch/onomancy-react#readme",
+  "bugs": "https://github.com/inkandswitch/onomancy-react/issues",
   "keywords": [
     "keyhive",
     "automerge",
@@ -28,7 +28,7 @@
       "types": "./dist/onomancy/index.d.ts",
       "import": "./dist/onomancy/index.js"
     },
-    "./styles.css": "./dist/keyhive-react.css",
+    "./styles.css": "./dist/onomancy-react.css",
     "./package.json": "./package.json"
   },
   "files": [
@@ -49,7 +49,7 @@
   "scripts": {
     "build": "pnpm run clean && pnpm run build:js && pnpm run build:css && pnpm run check",
     "build:js": "tsc -p tsconfig.build.json",
-    "build:css": "tailwindcss -c tailwind.config.js -i src/styles.css -o dist/keyhive-react.css --minify",
+    "build:css": "tailwindcss -c tailwind.config.js -i src/styles.css -o dist/onomancy-react.css --minify",
     "check": "pnpm run check:isolation && pnpm run check:prefix && pnpm run test:unit",
     "check:isolation": "node scripts/check-isolation.mjs",
     "check:prefix": "node scripts/check-prefix.mjs",

@@ -19,7 +19,7 @@ export interface AccountViewProps {
   /**
    * Canonicalise and validate a typed DNS name claim. Forwarded to
    * `ProfileEditor`; pass `runtime.normalizeDnsName` from
-   * `@automerge/keyhive-react/onomancy` to reject bad claims at entry.
+   * `@inkandswitch/onomancy-react/onomancy` to reject bad claims at entry.
    */
   normalizeDnsName?: (raw: string) => string;
   /**

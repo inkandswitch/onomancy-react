@@ -1,7 +1,7 @@
 /**
  * DNS name verification through onomancy.
  *
- * Imported as `@automerge/keyhive-react/onomancy`, separately from the main
+ * Imported as `@inkandswitch/onomancy-react/onomancy`, separately from the main
  * entry point. The split follows the domains rather than the layers: the
  * main entry knows what a DNS name claim is and what the twelve statuses mean,
  * and renders them; everything that *resolves* a name lives here.

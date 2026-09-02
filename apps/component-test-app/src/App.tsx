@@ -28,14 +28,14 @@ import {
   ProfileEditor,
   useAutomergeDocDirectory,
   useKeyhiveUpdates,
-} from "@automerge/keyhive-react";
+} from "@inkandswitch/onomancy-react";
 import {
   createKeyhiveDesignation,
   createOnomancyRuntime,
   idEqualityDesignation,
   useOnomancyDirectory,
   type DnsDesignation,
-} from "@automerge/keyhive-react/onomancy";
+} from "@inkandswitch/onomancy-react/onomancy";
 import { composeDirectories } from "./composeDirectories";
 import { DocumentPanel, LoadDocument } from "./DocumentPanel";
 import {
@@ -72,7 +72,7 @@ interface AppProps {
 }
 
 /**
- * A test app for the keyhive-react components.
+ * A test app for the onomancy-react components.
  */
 export default function App({ hive, repo }: AppProps) {
   // The localStorage copy: always available, never shared.
@@ -363,7 +363,7 @@ function TestApp({
   return (
     <div className="page">
       <header className="page-header">
-        <h1>keyhive-react test app</h1>
+        <h1>onomancy-react test app</h1>
       </header>
 
       {error && (

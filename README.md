@@ -1,4 +1,4 @@
-# @automerge/keyhive-react
+# @inkandswitch/onomancy-react
 
 React components for applications that use keyhive.
 
@@ -7,14 +7,14 @@ Pre-alpha.
 ## Install
 
 ```
-pnpm add @automerge/keyhive-react
+pnpm add @inkandswitch/onomancy-react
 ```
 
 `@automerge/automerge-repo-keyhive`, `@automerge/react` and `react` are peer
 dependencies. The package imports none of them at runtime (see
 [The keyhive runtime](#the-keyhive-runtime)), so the application's copy is the
 only one loaded. [DNS names](#dns-names) work the same way, through the
-separate `@automerge/keyhive-react/onomancy` entry point.
+separate `@inkandswitch/onomancy-react/onomancy` entry point.
 
 ## What is in it
 
@@ -35,8 +35,8 @@ import {
   DirectoryProvider,
   AccessEditor,
   useKeyhiveUpdates,
-} from "@automerge/keyhive-react";
-import "@automerge/keyhive-react/styles.css";
+} from "@inkandswitch/onomancy-react";
+import "@inkandswitch/onomancy-react/styles.css";
 
 const runtime = createKeyhiveRuntime(ark);
 
@@ -114,8 +114,8 @@ them; it resolves nothing. Everything that performs DNS lives behind a
 separate import:
 
 ```ts
-import { DnsNameBadge, type DnsNameStatus } from "@automerge/keyhive-react";
-import { useOnomancyDirectory } from "@automerge/keyhive-react/onomancy";
+import { DnsNameBadge, type DnsNameStatus } from "@inkandswitch/onomancy-react";
+import { useOnomancyDirectory } from "@inkandswitch/onomancy-react/onomancy";
 ```
 
 So the subpath is optional in practice. An application that computes
@@ -136,7 +136,7 @@ import * as onomancy from "@inkandswitch/onomancy";
 import {
   createOnomancyRuntime,
   useOnomancyDirectory,
-} from "@automerge/keyhive-react/onomancy";
+} from "@inkandswitch/onomancy-react/onomancy";
 
 const onomancyRuntime = createOnomancyRuntime(onomancy);
 
@@ -254,7 +254,7 @@ for a naming system.
 ## Styling
 
 ```ts
-import "@automerge/keyhive-react/styles.css";
+import "@inkandswitch/onomancy-react/styles.css";
 ```
 
 Every class is prefixed `kh-` and every custom property `--kh-`, so the

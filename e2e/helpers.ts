@@ -6,7 +6,7 @@ import { expect, type Page, type Browser } from "@playwright/test";
 export async function openApp(page: Page): Promise<void> {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "keyhive-react test app" })
+    page.getByRole("heading", { name: "onomancy-react test app" })
   ).toBeVisible();
   await expect(contactCard(page)).not.toBeEmpty({ timeout: 60_000 });
 }

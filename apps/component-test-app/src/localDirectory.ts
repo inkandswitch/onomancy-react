@@ -2,7 +2,7 @@ import type {
   DirectoryEntry,
   DirectoryEntryKind,
   NameDirectory,
-} from "@automerge/keyhive-react";
+} from "@inkandswitch/onomancy-react";
 
 /**
  * A name directory kept in localStorage. Its contents live outside React so it

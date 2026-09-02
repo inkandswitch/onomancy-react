@@ -1,5 +1,5 @@
 {
-  description = "keyhive-react";
+  description = "onomancy-react";
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-26.05";
@@ -42,7 +42,7 @@
 
         mkCheck = name: text:
           pkgs.writeShellApplication {
-            name = "keyhive-react-${name}";
+            name = "onomancy-react-${name}";
             runtimeInputs = js-env;
             text = ''
               set -x
@@ -82,12 +82,12 @@
         };
 
         ci-all = pkgs.writeShellApplication {
-          name = "keyhive-react-ci";
+          name = "onomancy-react-ci";
           runtimeInputs = js-env ++ pkgs.lib.attrValues ci-checks;
           text = ''
             pnpm install --frozen-lockfile
             ${pkgs.lib.concatMapStringsSep "\n"
-              (check: "keyhive-react-${check}")
+              (check: "onomancy-react-${check}")
               (builtins.attrNames ci-checks)}
           '';
         };
@@ -96,7 +96,7 @@
         # contexts are two keyhive identities. Not in the `ci` aggregate:
         # pulls whole browsers — run deliberately.
         ci-e2e = pkgs.writeShellApplication {
-          name = "keyhive-react-ci-e2e";
+          name = "onomancy-react-ci-e2e";
           runtimeInputs = js-env;
           text = ''
             export PLAYWRIGHT_BROWSERS_PATH="${playwright.browsers}"
@@ -126,7 +126,7 @@
             '';
 
             "test:e2e" = cmd "Playwright tests against the test app (extra args pass through)" ''
-              exec ${ci-e2e}/bin/keyhive-react-ci-e2e "$@"
+              exec ${ci-e2e}/bin/onomancy-react-ci-e2e "$@"
             '';
 
             "test:e2e:ui" = cmd "Playwright tests in UI mode" ''
@@ -136,13 +136,13 @@
             '';
 
             "ci" = cmd "Run all cheap CI checks (lint, tsc, build, pack, app)" ''
-              exec ${ci-all}/bin/keyhive-react-ci
+              exec ${ci-all}/bin/onomancy-react-ci
             '';
           })
         ];
       in {
         devShells.default = pkgs.mkShell {
-          name = "keyhive-react_shell";
+          name = "onomancy-react_shell";
 
           nativeBuildInputs =
             command_menu
@@ -166,7 +166,7 @@
         apps =
           pkgs.lib.mapAttrs (name: check: {
             type = "app";
-            program = "${check}/bin/keyhive-react-${name}";
+            program = "${check}/bin/onomancy-react-${name}";
           })
           (ci-checks
             // {
