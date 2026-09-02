@@ -5,3 +5,5 @@ dist
 test-results
 playwright-report
 blob-report
+.pnpm-store
+.ignore

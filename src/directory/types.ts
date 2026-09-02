@@ -4,6 +4,21 @@ export type DirectoryTrust = "unverified" | "verified";
 /** What an entry's id refers to. Groups are named here like individuals are. */
 export type DirectoryEntryKind = "individual" | "group";
 
+/**
+ * Where a DNS name claim stands with a verifying directory.
+ *
+ * - `pending`: the claim is being resolved.
+ * - `verified`: a DNSSEC-validated `_onomancy` TXT record designates this id.
+ * - `mismatch`: the record designates a different id.
+ * - `unreachable`: the binding could not be resolved (offline, no record, or
+ *   an invalid chain), which proves nothing either way.
+ * - `unsynced`: the domain designates a document this device has not synced,
+ *   so membership cannot be checked yet. Also proves nothing either way.
+ * - `invalid`: the claim is not a DNS name at all.
+ */
+export type DnsNameStatus =
+  "pending" | "verified" | "mismatch" | "unreachable" | "unsynced" | "invalid";
+
 /** Display information for one keyhive identity. */
 export interface DirectoryEntry {
   /** Hex-encoded keyhive identifier, as `listMembers` returns it. */
@@ -18,6 +33,18 @@ export interface DirectoryEntry {
    * needing to paste one in. Individuals only since a group has no card.
    */
   contactCard?: string;
+  /**
+   * A claimed DNS name, such as `expede.wtf`, stored without the `@` sigil.
+   * Self-asserted until a verifying directory checks its `_onomancy` TXT
+   * record. Empty string on publish clears the claim.
+   */
+  dnsName?: string;
+  /**
+   * Set by a verifying directory (see `createOnomancyDirectory`), never
+   * stored. Absent when the entry claims no DNS name or the directory does
+   * not verify.
+   */
+  dnsNameStatus?: DnsNameStatus;
 }
 
 export interface NameDirectory {

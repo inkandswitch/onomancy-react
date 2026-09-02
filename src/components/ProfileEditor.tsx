@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useDirectory, useDirectoryEntry } from "../directory/context.js";
 import type { DirectoryEntry, DirectoryEntryKind } from "../directory/types.js";
+import { normalizeDnsName } from "../onomancy/runtime.js";
 import { Avatar } from "./primitives/Avatar.js";
+import { DnsNameBadge } from "./primitives/DnsNameBadge.js";
 
 export interface ProfileEditorProps {
   /** Hex-encoded keyhive id whose directory entry this edits. */
@@ -13,6 +15,14 @@ export interface ProfileEditorProps {
   peerId?: string;
   nameLabel?: string;
   namePlaceholder?: string;
+  /**
+   * Offer a field for claiming a DNS name (an onomancy `@` name). The claim
+   * is self-asserted here; a verifying directory checks it against the
+   * domain's DNSSEC-protected `_onomancy` TXT record.
+   */
+  showDnsName?: boolean;
+  dnsNameLabel?: string;
+  dnsNamePlaceholder?: string;
   saveLabel?: string;
   /** Rendered between the name field and the buttons. */
   children?: ReactNode;
@@ -36,6 +46,9 @@ export function ProfileEditor({
   peerId,
   nameLabel = "Name",
   namePlaceholder = "Enter a name",
+  showDnsName = false,
+  dnsNameLabel = "DNS name",
+  dnsNamePlaceholder = "@example.com",
   saveLabel = "Save",
   children,
   onSaved,
@@ -48,15 +61,19 @@ export function ProfileEditor({
   const fieldId = useId();
 
   const [name, setName] = useState(entry?.name ?? "");
+  const [dnsName, setDnsName] = useState(entry?.dnsName ?? "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const nameEdited = useRef(false);
+  const dnsNameEdited = useRef(false);
   useEffect(() => {
     nameEdited.current = false;
+    dnsNameEdited.current = false;
     setName(entry?.name ?? "");
+    setDnsName(entry?.dnsName ?? "");
     // Only when the subject changes, so typing is not interrupted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -64,6 +81,10 @@ export function ProfileEditor({
   useEffect(() => {
     if (!nameEdited.current && entry?.name) setName(entry.name);
   }, [entry?.name]);
+
+  useEffect(() => {
+    if (!dnsNameEdited.current && entry?.dnsName) setDnsName(entry.dnsName);
+  }, [entry?.dnsName]);
 
   useEffect(() => {
     if (!avatarFile) {
@@ -85,6 +106,14 @@ export function ProfileEditor({
       const avatar = avatarFile
         ? new Uint8Array(await avatarFile.arrayBuffer())
         : (entry?.avatar ?? null);
+      // The empty string clears an existing claim; a hidden field leaves it be.
+      const claimed = showDnsName
+        ? dnsName.trim()
+          ? normalizeDnsName(dnsName)
+          : entry?.dnsName
+            ? ""
+            : undefined
+        : undefined;
       const updated: DirectoryEntry = {
         id,
         name,
@@ -94,6 +123,7 @@ export function ProfileEditor({
         ...(contactCardJson !== undefined
           ? { contactCard: contactCardJson }
           : {}),
+        ...(claimed !== undefined ? { dnsName: claimed } : {}),
       };
       await directory.publish(updated);
       setAvatarFile(null);
@@ -176,6 +206,39 @@ export function ProfileEditor({
           placeholder={namePlaceholder}
         />
       </div>
+
+      {showDnsName && (
+        <div>
+          <label
+            htmlFor={`${fieldId}-dns-name`}
+            className="kh-block kh-text-sm kh-font-medium kh-text-foreground kh-mb-2"
+          >
+            {dnsNameLabel}
+            {entry?.dnsName && (
+              <DnsNameBadge
+                dnsName={entry.dnsName}
+                status={entry.dnsNameStatus}
+                className="kh-ml-2"
+              />
+            )}
+          </label>
+          <input
+            type="text"
+            id={`${fieldId}-dns-name`}
+            value={dnsName}
+            onChange={(e) => {
+              dnsNameEdited.current = true;
+              setDnsName(e.target.value);
+            }}
+            className="kh-w-full kh-px-3 kh-py-2 kh-border kh-border-border kh-rounded-md kh-shadow-sm focus:kh-outline-none focus:kh-ring-2 focus:kh-ring-ring focus:kh-border-ring kh-bg-background kh-text-foreground kh-font-mono"
+            placeholder={dnsNamePlaceholder}
+          />
+          <p className="kh-mt-1 kh-text-xs kh-text-muted-foreground">
+            A domain that names this identity through an <code>_onomancy</code>{" "}
+            DNS record. The claim is only trustworthy once verified.
+          </p>
+        </div>
+      )}
 
       {children}
 

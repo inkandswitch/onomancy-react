@@ -6,6 +6,7 @@ export type {
   DirectoryEntry,
   DirectoryEntryKind,
   DirectoryTrust,
+  DnsNameStatus,
   NameDirectory,
 } from "./directory/types.js";
 export { emptyDirectory } from "./directory/types.js";
@@ -17,13 +18,40 @@ export {
   useDisplayName,
 } from "./directory/context.js";
 export type { DirectoryContextValue } from "./directory/context.js";
-export { createAutomergeDocDirectory } from "./directory/automerge-directory.js";
+export {
+  createAutomergeDocDirectory,
+  RESERVED_ONOMANCY_KEY,
+} from "./directory/automerge-directory.js";
 export type {
   AutomergeDocDirectoryOptions,
   DirectoryDoc,
   DirectoryDocChange,
 } from "./directory/automerge-directory.js";
 export { useAutomergeDocDirectory } from "./directory/useAutomergeDocDirectory.js";
+
+export {
+  createOnomancyRuntime,
+  normalizeDnsName,
+  parseRecordDocId,
+} from "./onomancy/runtime.js";
+export type {
+  HostnameBinding,
+  OnomancyModule,
+  OnomancyRuntime,
+  OnomancyRuntimeOptions,
+} from "./onomancy/runtime.js";
+export {
+  createKeyhiveDesignation,
+  idEqualityDesignation,
+} from "./onomancy/designation.js";
+export type {
+  DesignationVerdict,
+  DnsDesignation,
+  KeyhiveDesignationOptions,
+} from "./onomancy/designation.js";
+export { createOnomancyDirectory } from "./onomancy/verified-directory.js";
+export type { OnomancyDirectoryOptions } from "./onomancy/verified-directory.js";
+export { useOnomancyDirectory } from "./onomancy/useOnomancyDirectory.js";
 
 export {
   agentKindOf,
@@ -60,6 +88,8 @@ export type { AccessEditorProps } from "./components/AccessEditor.js";
 
 export { AccessBadge } from "./components/primitives/AccessBadge.js";
 export type { AccessBadgeProps } from "./components/primitives/AccessBadge.js";
+export { DnsNameBadge } from "./components/primitives/DnsNameBadge.js";
+export type { DnsNameBadgeProps } from "./components/primitives/DnsNameBadge.js";
 export { Avatar } from "./components/primitives/Avatar.js";
 export type { AvatarProps } from "./components/primitives/Avatar.js";
 export { CopyableField } from "./components/primitives/CopyableField.js";

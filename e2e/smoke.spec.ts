@@ -7,7 +7,9 @@ test.describe("the library renders in a host application", () => {
 
     const account = section(page, "Account");
     // ProfileEditor and CopyableField, both from the library.
-    await expect(account.getByRole("textbox", { name: "Name" })).toBeVisible();
+    await expect(
+      account.getByRole("textbox", { name: "Name", exact: true })
+    ).toBeVisible();
     await expect(account.getByRole("button", { name: "Save" })).toBeVisible();
     const card = await contactCard(page).innerText();
     expect(JSON.parse(card)).toHaveProperty("Add.payload.share_key");

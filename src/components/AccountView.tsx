@@ -11,6 +11,12 @@ export interface AccountViewProps {
   onCancel?: () => void;
   showIdentifiers?: boolean;
   /**
+   * Offer a field for claiming a DNS name (an onomancy `@` name), verified
+   * against the domain's DNSSEC-protected `_onomancy` TXT record by a
+   * verifying directory.
+   */
+  showDnsName?: boolean;
+  /**
    * Publish the contact card into the directory so someone who finds this
    * account by name can share with it without needing a new contact card.
    */
@@ -31,6 +37,7 @@ export function AccountView({
   onSaved,
   onCancel,
   showIdentifiers = true,
+  showDnsName = true,
   publishContactCard = false,
   fallbackAvatarSrc,
   className = "",
@@ -42,6 +49,7 @@ export function AccountView({
       id={self.id}
       kind="individual"
       peerId={self.peerId}
+      showDnsName={showDnsName}
       contactCardJson={publishContactCard ? self.contactCardJson : undefined}
       namePlaceholder="Enter your name"
       onSaved={onSaved}

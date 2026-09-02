@@ -21,6 +21,7 @@ const KNOWN_FALSE_POSITIVES = new Set([
   "ease-out",
   "filter",
   "hidden",
+  "lowercase",
   "table",
 ]);
 

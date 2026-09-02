@@ -13,7 +13,8 @@ pnpm add @automerge/keyhive-react
 `@automerge/automerge-repo-keyhive`, `@automerge/react` and `react` are peer
 dependencies. The package imports none of them at runtime (see
 [The keyhive runtime](#the-keyhive-runtime)), so the application's copy is the
-only one loaded.
+only one loaded. `@inkandswitch/onomancy` is an optional peer dependency,
+supplied the same way, for [DNS names](#dns-names).
 
 ## What is in it
 
@@ -22,6 +23,7 @@ only one loaded.
 | `AccountView`       | Display name, avatar, and the local contact card     |
 | `AccessEditor`      | Adding and removing members on a document or a group |
 | `DirectoryProvider` | Putting a name directory in scope                    |
+| `DnsNameBadge`      | A claimed DNS name with its verification state       |
 
 ## Using it
 
@@ -92,6 +94,70 @@ A directory declares what it cannot do: `writable`,
 
 `createAutomergeDocDirectory` covers a shared Automerge map document that each
 peer writes its own entry into.
+
+## DNS names
+
+An entry can claim a DNS name (`entry.dnsName`), giving an identity a
+memorable, globally shareable spelling like `@expede.wtf`. The claim is
+self-asserted until it is verified through
+[onomancy](https://github.com/inkandswitch/onomancy): the domain publishes a
+DNSSEC-protected `_onomancy` TXT record whose `p=` field is the identity's
+ed25519 verifying key, and the record is validated locally from the IANA root
+— no registry, no certificate authority, and no trust in whoever relayed it.
+
+Like keyhive, onomancy is Wasm-backed, so the application supplies its own
+copy through a runtime and this package imports nothing:
+
+```tsx
+import * as onomancy from "@inkandswitch/onomancy";
+import {
+  createOnomancyRuntime,
+  useOnomancyDirectory,
+} from "@automerge/keyhive-react";
+
+const onomancyRuntime = createOnomancyRuntime(onomancy);
+
+function App({ baseDirectory }) {
+  // Decorates entries that claim a dnsName with a verification status.
+  const directory = useOnomancyDirectory(baseDirectory, onomancyRuntime);
+  return <DirectoryProvider directory={directory}>{/* … */}</DirectoryProvider>;
+}
+```
+
+A claim is checked once, lazily, the first time its entry is read, and the
+result lands on the entry as `dnsNameStatus`: `verified`, `mismatch`,
+`unreachable`, `unsynced`, `pending`, or `invalid`. `ContactBook`,
+`AccessEditor`, and `ProfileEditor` render the claim as a `DnsNameBadge`; a
+directory without the wrapper renders claims as exactly that — claims,
+visually no stronger than a self-asserted display name.
+
+Verification is two layers. DNS proves `hostname → root document ids`; a
+_designation_ decides whether those documents belong to the entry's identity.
+The default designation requires the bound id to be the identity itself — the
+solo case. Domains are meant to bind a shared root namestore document instead,
+whose admins own the name (ownership is shared by inviting more admins; the
+DNS record never changes):
+
+```tsx
+const designation = createKeyhiveDesignation(keyhiveRuntime, hive);
+const directory = useOnomancyDirectory(baseDirectory, onomancyRuntime, {
+  designation,
+});
+```
+
+The keyhive designation accepts both anchor shapes: a bound id that is the
+identity verifies directly, and otherwise the designated document's members
+are consulted (admin access by default). A designated document this device has
+not synced reads `unsynced` — not evidence either way — until a replica
+arrives.
+
+`AccountView` offers the field for claiming a name (turn it off with
+`showDnsName={false}`). Publishing an empty string withdraws the claim.
+
+A verified badge proves that the domain, as attested by a DNSSEC chain from
+the IANA root during the chain's signature window, designated this identity.
+It proves nothing about the domain owner's intentions, and nothing about any
+other name.
 
 ## Styling
 

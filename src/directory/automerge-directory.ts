@@ -5,6 +5,13 @@ import type {
   NameDirectory,
 } from "./types.js";
 
+/**
+ * The reserved top-level key onomancy namestore data lives under when the
+ * directory document doubles as a root namestore. Never a directory entry:
+ * profile entries and namestore edges share the document without colliding.
+ */
+export const RESERVED_ONOMANCY_KEY = "onomancy";
+
 /** Hex-encoded keyhive id to display information. */
 export type DirectoryDoc = Record<
   string,
@@ -14,6 +21,7 @@ export type DirectoryDoc = Record<
     avatar?: Uint8Array | null;
     kind?: DirectoryEntryKind;
     contactCard?: string;
+    dnsName?: string;
   }
 >;
 
@@ -47,13 +55,16 @@ export function createAutomergeDocDirectory(
     notice: options.notice ?? DEFAULT_NOTICE,
 
     lookup(id) {
+      if (id === RESERVED_ONOMANCY_KEY) return undefined;
       const record = doc?.[id];
       return record ? { id, ...record } : undefined;
     },
 
     list() {
       if (!doc) return [];
-      return Object.entries(doc).map(([id, record]) => ({ id, ...record }));
+      return Object.entries(doc)
+        .filter(([id]) => id !== RESERVED_ONOMANCY_KEY)
+        .map(([id, record]) => ({ id, ...record }));
     },
   };
 
@@ -70,6 +81,7 @@ export function createAutomergeDocDirectory(
           if (entry.kind !== undefined) record.kind = entry.kind;
           if (entry.contactCard !== undefined)
             record.contactCard = entry.contactCard;
+          if (entry.dnsName) record.dnsName = entry.dnsName;
           d[entry.id] = record;
           return;
         }
@@ -80,6 +92,11 @@ export function createAutomergeDocDirectory(
         if (entry.kind !== undefined) existing.kind = entry.kind;
         if (entry.contactCard !== undefined)
           existing.contactCard = entry.contactCard;
+        // The empty string clears a claim; undefined leaves it alone.
+        if (entry.dnsName !== undefined) {
+          if (entry.dnsName === "") delete existing.dnsName;
+          else existing.dnsName = entry.dnsName;
+        }
       });
     };
   }

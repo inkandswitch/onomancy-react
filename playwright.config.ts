@@ -10,9 +10,11 @@ export default defineConfig({
   expect: { timeout: 20_000 },
 
   // Each test drives its own browser identity, so they cannot share state and
-  // there is nothing to serialise.
+  // there is nothing to serialise. Two workers everywhere: every app instance
+  // handshakes with the real sync server, and higher parallelism starves
+  // those round-trips into timeouts.
   fullyParallel: true,
-  workers: process.env.CI ? 2 : undefined,
+  workers: 2,
 
   // We expect success on the first pass
   retries: 0,

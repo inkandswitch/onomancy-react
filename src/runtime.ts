@@ -22,6 +22,9 @@ export interface KeyhiveRuntime {
   readonly ContactCard: {
     fromJson(json: string): ContactCard | undefined;
   };
+  readonly DocumentId: {
+    new (bytes: Uint8Array): DocumentId;
+  };
   readonly Identifier: {
     new (bytes: Uint8Array): Identifier;
     publicId(): Identifier;
@@ -38,6 +41,7 @@ export function createKeyhiveRuntime(ark: KeyhiveModule): KeyhiveRuntime {
   return {
     Access: ark.Access,
     ContactCard: ark.ContactCard,
+    DocumentId: ark.DocumentId,
     Identifier: ark.Identifier,
     docIdFromAutomergeUrl: (url) => ark.docIdFromAutomergeUrl(url),
     isUnprotectedDoc: (url) => ark.isUnprotectedDoc(url),
