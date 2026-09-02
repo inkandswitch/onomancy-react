@@ -147,8 +147,12 @@ function App({ baseDirectory }) {
 ```
 
 A claim is checked once, lazily, the first time its entry is read, and the
-result lands on the entry as `dnsNameStatus`: `verified`, `mismatch`,
-`unreachable`, `unsynced`, `pending`, or `invalid`. `ContactBook`,
+result lands on the entry as `dnsNameStatus`, one of twelve values —
+`verified`, `mismatch`, `contested`, `offline`, `malformed`, `no-claim`,
+`chain-failed`, `replayed`, `deferred`, `unsynced`, `pending`, `invalid`.
+The five non-answers are separate values because they carry different
+remedies: retry, fix the input, tell the domain owner, wait for a clock, or
+trust nothing from this zone. `ContactBook`,
 `AccessEditor`, and `ProfileEditor` render the claim as a `DnsNameBadge`; a
 directory without the wrapper renders claims as exactly that — claims,
 visually no stronger than a self-asserted display name.
@@ -188,7 +192,7 @@ it can write anything into it, including somebody else's domain. That is fine:
 > A claim is forgeable. A badge is not. Anyone can write
 > `dnsName: "example.com"` into anyone's entry, but the badge is not read from
 > the document — it comes from resolving the domain and checking what that
-> domain designates. A forged claim renders `mismatch` or `unreachable`.
+> domain designates. A forged claim renders `mismatch` or `no-claim`.
 > Nobody can write their way to `verified`.
 >
 > The document carries the assertion. DNS carries the authority.
@@ -200,16 +204,39 @@ to keep claims, and why `publish` strips `dnsNameStatus` before writing.
 ### The errors run one way
 
 A verified badge proves that the domain, as attested by a DNSSEC chain from
-the IANA root during the chain's signature window, designated this identity.
-It proves nothing about the domain owner's intentions, and nothing about any
-other name.
+the IANA root during the chain's signature window, designated a document
+**this identity administers**. It proves nothing about the domain owner's
+intentions, and nothing about any other name.
+
+It is **one-directional, and it is not the onomancy spec's _verified
+binding_.** The spec's binding runs through a certificate: the domain names
+the document whose id appears _in the certificate_, and a key delegated by
+that document _signed_ it. This library consults no certificate.
+
+Two consequences, neither of them merely "weaker evidence":
+
+- **It is not transferable.** A certificate is self-authenticating — anyone
+  can check it against their own trust anchors, from bytes that arrived
+  anywhere. This verdict is local: it needs the document replicated and
+  keyhive state present, so a third party cannot be shown why the badge was
+  earned.
+- **The document never speaks.** A domain may unilaterally name any document
+  id, and that document's admins cannot decline. Under the spec the document
+  participates, and refusing to sign is how it refuses. Here the only thing
+  preventing a badge is the identity not claiming the name.
+
+So a document can carry a certificate while none of its admins claim the
+domain, and an identity can carry this badge while the document has certified
+nothing. **Different questions about the same pair.** See `DnsNameStatus` for
+the full statement, and do not overload `verified` when certificates become
+mintable — that verdict wants its own status.
 
 The design has **no false positives and real false negatives**, deliberately:
 
 - It will not wrongly verify. Every path to `verified` requires positive
   evidence from outside the document.
 - It will sometimes fail to verify someone legitimate. A record that fails to
-  parse reads `unreachable`; a designated document this device has not synced
+  parse reads `no-claim`; a designated document this device has not synced
   reads `unsynced`; and an identity holding admin _through a group_ reads
   `unsynced` too, because keyhive's `members()` reports a document's own
   delegations and those do not change when a group that already has access

@@ -323,6 +323,9 @@ export function AccessEditor({
                           <DnsNameBadge
                             dnsName={entry.dnsName}
                             status={entry.dnsNameStatus}
+                            freshness={entry.dnsNameFreshness}
+
+                            lapsedSeconds={entry.dnsNameLapsedSeconds}
                             className="kh-ml-2"
                           />
                         )}

@@ -40,6 +40,7 @@ export type {
 
 export {
   clearVerificationCache,
+  clearVerificationVerdicts,
   createOnomancyDirectory,
   createVerificationCache,
 } from "./verified-directory.js";
@@ -49,3 +50,4 @@ export type {
 } from "./verified-directory.js";
 
 export { useOnomancyDirectory } from "./useOnomancyDirectory.js";
+export type { UseOnomancyDirectoryOptions } from "./useOnomancyDirectory.js";

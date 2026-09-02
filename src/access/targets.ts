@@ -39,8 +39,13 @@ export interface AccessTarget {
   runtime: KeyhiveRuntime;
   supportsPublicAccess: boolean;
   /**
-   * Who this target is shared with, one entry per direct delegation. A group
-   * is one entry (individual group members are not listed here).
+   * Everyone who holds access, by whatever path.
+   *
+   * A direct delegation is one entry, and a group added directly is one entry
+   * rather than one per member. Individuals reachable *only* through a group
+   * also appear, marked `isDirect: false` — they hold real access and a list
+   * that omitted them would be a list that lies, which matters most for the
+   * revocation flows built on top of it.
    */
   listMembers(): Promise<TargetMember[]>;
   /**
@@ -187,7 +192,7 @@ export function createDocumentTarget(
       }
 
       const docHex = docIdHex();
-      return caps
+      const direct = caps
         .filter((cap) => !isGeneratedOwnerGroup(cap, docHex))
         .map((cap) => {
           const id = bytesToHex(cap.who.id.toBytes());
@@ -203,6 +208,35 @@ export function createDocumentTarget(
             kind: isSelf ? ("individual" as const) : agentKindOf(cap.who),
           };
         });
+
+      // Union, not either-or.
+      //
+      // Returning only `direct` whenever it is non-empty drops everyone whose
+      // access arrives through a group — and `direct` is *always* non-empty,
+      // because this identity is itself a direct member of any document it
+      // can see. So the transitive branch above was unreachable in practice.
+      //
+      // Measured consequence, not a hypothetical: a document's generated
+      // owner group holds Admin and is filtered out just above as machinery.
+      // A person added to that group therefore holds Admin transitively, and
+      // under the old either-or they appeared in no list this component could
+      // render — unshown, and unrevokable through a UI that revokes from
+      // the list it shows.
+      //
+      // The group itself stays hidden and its members are shown: the group is
+      // machinery, its members are people. That does mean a row can appear
+      // with no shown path to its authority, which `isDirect: false` is
+      // there to let a renderer explain.
+      const directIds = new Set(direct.map((member) => member.id));
+      const transitiveOnly = reachable
+        .filter((member) => !directIds.has(member.id))
+        .map((member) => ({
+          ...member,
+          isDirect: false,
+          kind: "individual" as const,
+        }));
+
+      return [...direct, ...transitiveOnly];
     },
 
     async selfAccess() {

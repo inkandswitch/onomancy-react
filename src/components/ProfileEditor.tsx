@@ -244,6 +244,9 @@ export function ProfileEditor({
               <DnsNameBadge
                 dnsName={entry.dnsName}
                 status={entry.dnsNameStatus}
+                freshness={entry.dnsNameFreshness}
+
+                lapsedSeconds={entry.dnsNameLapsedSeconds}
                 className="kh-ml-2"
               />
             )}

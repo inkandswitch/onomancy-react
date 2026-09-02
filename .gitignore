@@ -7,3 +7,6 @@ playwright-report
 blob-report
 .pnpm-store
 .ignore
+.pi-subagents
+result
+result-*

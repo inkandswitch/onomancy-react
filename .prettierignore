@@ -1,3 +1,10 @@
+# Prettier discovers files rather than opting in to them, and does not read
+# .gitignore. Scratch and build directories therefore have to be listed here
+# as well as there. See the matching list in eslint.config.mjs.
+.ignore
+.pi-subagents
+.pnpm-store
 dist
 pnpm-lock.yaml
-.pnpm-store
+result
+result-*
