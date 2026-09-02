@@ -472,7 +472,11 @@ export function createOnomancyDirectory(
       // rebuild must still reach whoever is listening when it lands.
       const subscriber: Subscriber = { notify: listener };
       listeners.add(subscriber);
-      const unsubscribe = base.subscribe?.(listener);
+      // A fresh closure, not the raw listener: a base directory that
+      // deduplicates listeners by identity would otherwise collapse two
+      // subscriptions sharing one callback, and the first unsubscribe would
+      // cancel the second subscriber's base updates.
+      const unsubscribe = base.subscribe?.(() => listener());
       return () => {
         listeners.delete(subscriber);
         unsubscribe?.();
