@@ -9,6 +9,7 @@
 
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -17,10 +18,12 @@ const PACKAGE_DIR = new URL("..", import.meta.url).pathname;
 // Words that are Tailwind utilities and also ordinary English or JavaScript.
 // Tailwind's extractor cannot tell `.filter(...)` from a class name.
 const KNOWN_FALSE_POSITIVES = new Set([
+  "collapse",
   "contents",
   "ease-out",
   "filter",
   "hidden",
+  "lowercase",
   "table",
 ]);
 
@@ -41,9 +44,18 @@ writeFileSync(
 );
 writeFileSync(inputPath, "@tailwind utilities;\n");
 
+// Resolve Tailwind's CLI through the module graph rather than shelling out to
+// `npx`. `npx` reaches it via `node_modules/.bin/tailwindcss`, a shim with a
+// `#!/bin/sh` shebang — so on a system without `/bin/sh` this check cannot run
+// at all, and `pnpm build` fails on a machine where the toolchain is present.
+// Resolving the entry point directly needs no shell and no extra process
+// lookup.
+const require = createRequire(import.meta.url);
+const tailwindCli = require.resolve("tailwindcss/lib/cli.js");
+
 execFileSync(
-  "npx",
-  ["tailwindcss", "-c", configPath, "-i", inputPath, "-o", outputPath],
+  process.execPath,
+  [tailwindCli, "-c", configPath, "-i", inputPath, "-o", outputPath],
   { cwd: PACKAGE_DIR, stdio: "pipe" }
 );
 
@@ -58,7 +70,7 @@ const unprefixed = [...new Set(generated)]
 if (unprefixed.length > 0) {
   console.error(
     "These Tailwind classes are used without the kh- prefix, so they are\n" +
-      "missing from dist/keyhive-react.css:\n"
+      "missing from dist/onomancy-react.css:\n"
   );
   for (const name of unprefixed) console.error(`  ${name}`);
   console.error(

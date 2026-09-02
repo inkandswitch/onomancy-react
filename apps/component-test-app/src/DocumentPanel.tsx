@@ -13,7 +13,7 @@ import type {
 import {
   CopyableField,
   useReRenderOnDocProgress,
-} from "@automerge/keyhive-react";
+} from "@inkandswitch/onomancy-react";
 
 export interface TestAppDoc {
   title: string;

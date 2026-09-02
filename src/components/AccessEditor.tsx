@@ -10,6 +10,7 @@ import { useTargetMembers } from "../access/useTargetMembers.js";
 import { ContactBook } from "./ContactBook.js";
 import { AccessBadge } from "./primitives/AccessBadge.js";
 import { Avatar } from "./primitives/Avatar.js";
+import { DnsNameBadge } from "./primitives/DnsNameBadge.js";
 
 export interface AccessEditorProps {
   /** The document or group whose membership is being edited. */
@@ -298,6 +299,7 @@ export function AccessEditor({
           ) : (
             sortedMembers.map((member) => {
               const label = memberLabel(member, directory, labelForMember);
+              const entry = directory.lookup(member.id);
               return (
                 <div
                   key={member.id}
@@ -305,7 +307,7 @@ export function AccessEditor({
                 >
                   <div className="kh-flex kh-items-center kh-space-x-3 kh-min-w-0">
                     <Avatar
-                      avatar={directory.lookup(member.id)?.avatar}
+                      avatar={entry?.avatar}
                       name={label}
                       fallbackSrc={fallbackAvatarSrc}
                     />
@@ -316,6 +318,16 @@ export function AccessEditor({
                           <span className="kh-ml-2 kh-text-xs kh-text-muted-foreground">
                             (group)
                           </span>
+                        )}
+                        {entry?.dnsName && (
+                          <DnsNameBadge
+                            dnsName={entry.dnsName}
+                            status={entry.dnsNameStatus}
+                            freshness={entry.dnsNameFreshness}
+
+                            lapsedSeconds={entry.dnsNameLapsedSeconds}
+                            className="kh-ml-2"
+                          />
                         )}
                       </div>
                       <div className="kh-flex kh-items-center kh-gap-2">

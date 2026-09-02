@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { shortId, useDirectory } from "../directory/context.js";
 import type { DirectoryEntry, DirectoryEntryKind } from "../directory/types.js";
 import { Avatar } from "./primitives/Avatar.js";
+import { DnsNameBadge } from "./primitives/DnsNameBadge.js";
 
 export interface ContactBookProps {
   /** Called with the entry the reader picked. */
@@ -21,6 +22,8 @@ function matches(entry: DirectoryEntry, query: string): boolean {
   const needle = query.toLowerCase();
   return (
     (entry.name?.toLowerCase().includes(needle) ?? false) ||
+    (entry.dnsName?.toLowerCase().includes(needle.replace(/^@/, "")) ??
+      false) ||
     entry.id.toLowerCase().startsWith(needle)
   );
 }
@@ -109,6 +112,16 @@ export function ContactBook({
                       <span className="kh-ml-2 kh-text-xs kh-text-muted-foreground">
                         (group)
                       </span>
+                    )}
+                    {entry.dnsName && (
+                      <DnsNameBadge
+                        dnsName={entry.dnsName}
+                        status={entry.dnsNameStatus}
+                        freshness={entry.dnsNameFreshness}
+
+                        lapsedSeconds={entry.dnsNameLapsedSeconds}
+                        className="kh-ml-2"
+                      />
                     )}
                   </span>
                   <span className="kh-block kh-text-xs kh-text-muted-foreground kh-font-mono kh-truncate">

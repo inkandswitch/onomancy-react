@@ -1,5 +1,5 @@
 /**
- * Builds dist/keyhive-react.css.
+ * Builds dist/onomancy-react.css.
  *
  * Every utility is prefixed `kh-` and every custom property `--kh-`, so the
  * output drops into an application that has no Tailwind and sits beside one

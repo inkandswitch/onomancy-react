@@ -6,6 +6,7 @@ export type {
   DirectoryEntry,
   DirectoryEntryKind,
   DirectoryTrust,
+  DnsNameStatus,
   NameDirectory,
 } from "./directory/types.js";
 export { emptyDirectory } from "./directory/types.js";
@@ -17,13 +18,27 @@ export {
   useDisplayName,
 } from "./directory/context.js";
 export type { DirectoryContextValue } from "./directory/context.js";
-export { createAutomergeDocDirectory } from "./directory/automerge-directory.js";
+export {
+  createAutomergeDocDirectory,
+  RESERVED_ONOMANCY_KEY,
+} from "./directory/automerge-directory.js";
 export type {
   AutomergeDocDirectoryOptions,
   DirectoryDoc,
   DirectoryDocChange,
 } from "./directory/automerge-directory.js";
 export { useAutomergeDocDirectory } from "./directory/useAutomergeDocDirectory.js";
+
+// DNS name verification lives in `@inkandswitch/onomancy-react/onomancy`. This
+// entry point knows what a claim is and how to render one; it does not
+// resolve anything. `DnsNameStatus` carries the rules a status must follow,
+// whoever computes it.
+
+export { documentDelegatesTo } from "./access/delegation.js";
+export type {
+  DelegationVerdict,
+  DocumentDelegationOptions,
+} from "./access/delegation.js";
 
 export {
   agentKindOf,
@@ -60,6 +75,8 @@ export type { AccessEditorProps } from "./components/AccessEditor.js";
 
 export { AccessBadge } from "./components/primitives/AccessBadge.js";
 export type { AccessBadgeProps } from "./components/primitives/AccessBadge.js";
+export { DnsNameBadge } from "./components/primitives/DnsNameBadge.js";
+export type { DnsNameBadgeProps } from "./components/primitives/DnsNameBadge.js";
 export { Avatar } from "./components/primitives/Avatar.js";
 export type { AvatarProps } from "./components/primitives/Avatar.js";
 export { CopyableField } from "./components/primitives/CopyableField.js";

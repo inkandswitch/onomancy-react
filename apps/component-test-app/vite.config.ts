@@ -82,6 +82,7 @@ export default defineConfig({
       "@automerge/automerge-subduction",
       "@automerge/automerge-subduction/slim",
       "@automerge/automerge-repo-keyhive",
+      "@inkandswitch/onomancy",
       "@keyhive/keyhive",
       "@keyhive/keyhive/slim",
     ],

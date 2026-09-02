@@ -1,4 +1,4 @@
-# @automerge/keyhive-react
+# @inkandswitch/onomancy-react
 
 React components for applications that use keyhive.
 
@@ -7,13 +7,14 @@ Pre-alpha.
 ## Install
 
 ```
-pnpm add @automerge/keyhive-react
+pnpm add @inkandswitch/onomancy-react
 ```
 
 `@automerge/automerge-repo-keyhive`, `@automerge/react` and `react` are peer
 dependencies. The package imports none of them at runtime (see
 [The keyhive runtime](#the-keyhive-runtime)), so the application's copy is the
-only one loaded.
+only one loaded. [DNS names](#dns-names) work the same way, through the
+separate `@inkandswitch/onomancy-react/onomancy` entry point.
 
 ## What is in it
 
@@ -22,6 +23,7 @@ only one loaded.
 | `AccountView`       | Display name, avatar, and the local contact card     |
 | `AccessEditor`      | Adding and removing members on a document or a group |
 | `DirectoryProvider` | Putting a name directory in scope                    |
+| `DnsNameBadge`      | A claimed DNS name with its verification state       |
 
 ## Using it
 
@@ -33,8 +35,8 @@ import {
   DirectoryProvider,
   AccessEditor,
   useKeyhiveUpdates,
-} from "@automerge/keyhive-react";
-import "@automerge/keyhive-react/styles.css";
+} from "@inkandswitch/onomancy-react";
+import "@inkandswitch/onomancy-react/styles.css";
 
 const runtime = createKeyhiveRuntime(ark);
 
@@ -93,10 +95,166 @@ A directory declares what it cannot do: `writable`,
 `createAutomergeDocDirectory` covers a shared Automerge map document that each
 peer writes its own entry into.
 
+## DNS names
+
+An entry can claim a DNS name (`entry.dnsName`), giving an identity a
+memorable, globally shareable spelling like `@expede.wtf`. The claim is
+self-asserted until it is verified through
+[onomancy](https://github.com/inkandswitch/onomancy): the domain publishes a
+DNSSEC-protected `_onomancy` TXT record whose `p=` field names the bound
+root document (an ed25519 verifying key), and the record is validated locally
+from the IANA root
+— no registry, no certificate authority, and no trust in whoever relayed it.
+
+### Where the pieces live
+
+This package keeps the _vocabulary_ and sheds the _mechanism_. The main entry
+point knows what a claim is, what the twelve statuses mean, and how to render
+them; it resolves nothing. Everything that performs DNS lives behind a
+separate import:
+
+```ts
+import { DnsNameBadge, type DnsNameStatus } from "@inkandswitch/onomancy-react";
+import { useOnomancyDirectory } from "@inkandswitch/onomancy-react/onomancy";
+```
+
+So the subpath is optional in practice. An application that computes
+`dnsNameStatus` itself — because it already holds onomancy, or verifies
+against something that is not DNS — uses the components and the
+`DirectoryEntry` fields without importing any of it. The rules such a status
+must obey are documented on `DnsNameStatus`, which stays on the main entry so
+it binds either way.
+
+The isolation guarantee covers both entry points: neither imports anything
+but React, and the build fails if that stops being true.
+
+Like keyhive, onomancy is Wasm-backed, so the application supplies its own
+copy through a runtime and this package imports nothing:
+
+```tsx
+import * as onomancy from "@inkandswitch/onomancy";
+import {
+  createOnomancyRuntime,
+  useOnomancyDirectory,
+} from "@inkandswitch/onomancy-react/onomancy";
+
+const onomancyRuntime = createOnomancyRuntime(onomancy);
+
+function App({ baseDirectory }) {
+  // Decorates entries that claim a dnsName with a verification status.
+  const directory = useOnomancyDirectory(baseDirectory, onomancyRuntime);
+  return <DirectoryProvider directory={directory}>{/* … */}</DirectoryProvider>;
+}
+```
+
+A claim is checked once, lazily, the first time its entry is read, and the
+result lands on the entry as `dnsNameStatus`, one of twelve values —
+`verified`, `mismatch`, `contested`, `offline`, `malformed`, `no-claim`,
+`chain-failed`, `replayed`, `deferred`, `unsynced`, `pending`, `invalid`.
+The non-verdicts are separate values because they carry different remedies:
+retry (`offline`), fix the input (`malformed`), nothing to prove
+(`no-claim`), wait (`unsynced`, `deferred`, `pending`) — and the two
+security signals, `chain-failed` and `replayed`, must never be rendered as
+absences. `ContactBook`,
+`AccessEditor`, and `ProfileEditor` render the claim as a `DnsNameBadge`; a
+directory without the wrapper renders claims as exactly that — claims,
+visually no stronger than a self-asserted display name.
+
+Verification is two layers. DNS proves `hostname → root document ids`; a
+_designation_ decides whether those documents belong to the entry's identity.
+The default designation requires the bound id to be the identity itself — the
+solo case. Domains are meant to bind a shared root namestore document instead,
+whose admins own the name (ownership is shared by inviting more admins; the
+DNS record never changes):
+
+```tsx
+const designation = createKeyhiveDesignation(keyhiveRuntime, hive);
+const directory = useOnomancyDirectory(baseDirectory, onomancyRuntime, {
+  designation,
+});
+```
+
+The keyhive designation accepts both anchor shapes: a bound id that is the
+identity verifies directly, and otherwise the designated document's members
+are consulted (admin access by default). A designated document this device has
+not synced reads `unsynced` — not evidence either way — until a replica
+arrives.
+
+`AccountView` offers the field for claiming a name (turn it off with
+`showDnsName={false}`). Publishing an empty string withdraws the claim. Pass
+`normalizeDnsName={onomancyRuntime.normalizeDnsName}` to reject a malformed
+claim as it is typed, against onomancy's own grammar; without it the field
+canonicalises spelling but cannot tell a hostname from a typo, and the bad
+claim is stored and later rendered `invalid`.
+
+### Why a forgeable claim is safe to store
+
+The directory holding these claims is ordinary data. Anyone who can write to
+it can write anything into it, including somebody else's domain. That is fine:
+
+> A claim is forgeable. A badge is not. Anyone can write
+> `dnsName: "example.com"` into anyone's entry, but the badge is not read from
+> the document — it comes from resolving the domain and checking what that
+> domain designates. A forged claim renders `mismatch` or `no-claim`.
+> Nobody can write their way to `verified`.
+>
+> The document carries the assertion. DNS carries the authority.
+
+This is why the directory abstraction can stay data-only and swappable, why a
+directory document that anyone holding its id may write is an acceptable place
+to keep claims, and why `publish` strips every `dnsName*` verification decoration before
+writing.
+
+### The errors run one way
+
+A verified badge proves that the domain, as attested by a DNSSEC chain from
+the IANA root during the chain's signature window, designated a document
+**this identity administers**. It proves nothing about the domain owner's
+intentions, and nothing about any other name.
+
+It is **one-directional, and it is not the onomancy spec's _verified
+binding_.** The spec's binding runs through a certificate: the domain names
+the document whose id appears _in the certificate_, and a key delegated by
+that document _signed_ it. This library consults no certificate.
+
+Two consequences, neither of them merely "weaker evidence":
+
+- **It is not transferable.** A certificate is self-authenticating — anyone
+  can check it against their own trust anchors, from bytes that arrived
+  anywhere. This verdict is local: it needs the document replicated and
+  keyhive state present, so a third party cannot be shown why the badge was
+  earned.
+- **The document never speaks.** A domain may unilaterally name any document
+  id, and that document's admins cannot decline. Under the spec the document
+  participates, and refusing to sign is how it refuses. Here the only thing
+  preventing a badge is the identity not claiming the name.
+
+So a document can carry a certificate while none of its admins claim the
+domain, and an identity can carry this badge while the document has certified
+nothing. **Different questions about the same pair.** See `DnsNameStatus` for
+the full statement, and do not overload `verified` when certificates become
+mintable — that verdict wants its own status.
+
+The design has **no false positives and real false negatives**, deliberately:
+
+- It will not wrongly verify. Every path to `verified` requires positive
+  evidence from outside the document.
+- It will sometimes fail to verify someone legitimate. A record that fails to
+  parse reads `no-claim`, and a designated document this device has not
+  synced reads `unsynced` — not evidence either way — until a replica
+  arrives.
+
+The delegation walk is transitive (`docMemberCapabilities`), so an identity
+holding admin through a nested group verifies exactly as a direct admin does,
+at the access its chain actually grants.
+
+Never wrongly verifying while sometimes failing to verify is the right trade
+for a naming system.
+
 ## Styling
 
 ```ts
-import "@automerge/keyhive-react/styles.css";
+import "@inkandswitch/onomancy-react/styles.css";
 ```
 
 Every class is prefixed `kh-` and every custom property `--kh-`, so the

@@ -2,7 +2,7 @@ import type {
   DirectoryEntry,
   DirectoryEntryKind,
   NameDirectory,
-} from "@automerge/keyhive-react";
+} from "@inkandswitch/onomancy-react";
 
 /**
  * A name directory kept in localStorage. Its contents live outside React so it
@@ -18,6 +18,7 @@ interface StoredEntry {
   avatarBase64?: string;
   kind?: DirectoryEntryKind;
   contactCard?: string;
+  dnsName?: string;
 }
 
 type StoredDirectory = Record<string, StoredEntry>;
@@ -68,6 +69,7 @@ export function createLocalDirectory(): NameDirectory {
       avatar: decodeAvatar(record.avatarBase64),
       kind: record.kind,
       contactCard: record.contactCard,
+      dnsName: record.dnsName,
     };
   }
 
@@ -112,6 +114,11 @@ export function createLocalDirectory(): NameDirectory {
       if (entry.kind !== undefined) record.kind = entry.kind;
       if (entry.contactCard !== undefined)
         record.contactCard = entry.contactCard;
+      // The empty string clears a claim; undefined leaves it alone.
+      if (entry.dnsName !== undefined) {
+        if (entry.dnsName === "") delete record.dnsName;
+        else record.dnsName = entry.dnsName;
+      }
       stored = { ...stored, [entry.id]: record };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
       notify();

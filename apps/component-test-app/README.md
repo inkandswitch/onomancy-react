@@ -6,13 +6,13 @@ rather than the published package to exercise the working tree.
 It was designed to contrast with the TODO demo in
 [keyhive-todo-app-demo](https://github.com/inkandswitch/keyhive-todo-app-demo):
 
-|                   | TODO demo                  | This app                                   |
-| ----------------- | -------------------------- | ------------------------------------------ |
-| Name directory    | shared Automerge phonebook | localStorage, per browser                  |
-| Directory updates | new object each change     | `subscribe` callbacks                      |
-| Styling           | its own Tailwind setup     | `@automerge/keyhive-react/styles.css` only |
-| Theme             | dark                       | light                                      |
-| Component context | dialogs                    | inline sections                            |
+|                   | TODO demo                  | This app                                       |
+| ----------------- | -------------------------- | ---------------------------------------------- |
+| Name directory    | shared Automerge phonebook | localStorage, per browser                      |
+| Directory updates | new object each change     | `subscribe` callbacks                          |
+| Styling           | its own Tailwind setup     | `@inkandswitch/onomancy-react/styles.css` only |
+| Theme             | dark                       | light                                          |
+| Component context | dialogs                    | inline sections                                |
 
 ## Run
 

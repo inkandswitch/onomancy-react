@@ -41,11 +41,20 @@ const automergeSlimImportRule = {
 
 export default [
   {
+    // ESLint and Prettier are the only tools in this tree that DISCOVER files
+    // rather than opting in to them (tsc uses `include`, Playwright `testDir`,
+    // Tailwind and check-prefix a `src/**` glob). So they are also the only
+    // two that walk scratch directories, and both need them listed here and in
+    // .prettierignore. Neither reads .gitignore.
     ignores: [
       "**/*.d.ts",
       "**/dist/*",
       "**/node_modules/*",
+      ".ignore/**",
+      ".pi-subagents/**",
       "eslint.config.mjs",
+      "result",
+      "result-*",
       "**/vite.config.ts",
     ],
   },
