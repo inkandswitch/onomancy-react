@@ -1,6 +1,6 @@
 {
   "name": "@inkandswitch/onomancy-react",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0",
   "description": "React components and hooks for keyhive access control.",
   "license": "MIT",
   "repository": {
@@ -31,14 +31,8 @@
     "./styles.css": "./dist/onomancy-react.css",
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md"
-  ],
-  "sideEffects": [
-    "*.css"
-  ],
+  "files": ["dist", "src", "README.md"],
+  "sideEffects": ["*.css"],
   "publishConfig": {
     "access": "public"
   },
