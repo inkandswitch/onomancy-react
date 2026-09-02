@@ -49,7 +49,7 @@ export interface OnomancyRuntimeOptions {
    * a test that cannot name the instant can only assert whatever behaviour
    * it happens to observe.
    */
-  now?: () => number;
+  now?: () => number | bigint;
 }
 
 /**
@@ -164,6 +164,14 @@ export interface HostnameBinding {
   clockSkewSeconds?: number;
 }
 
+/**
+ * Custom implementations note: `resolveBoundIds` MUST set `contested` when
+ * records of equal top precedence disagree on `(document, generation)` —
+ * including the same-document/different-generation case, which is carried
+ * ONLY by the flag (the ids list has one entry, so a consumer cannot infer
+ * the contest from it). An implementation that omits the flag silently
+ * verifies mid-rotation zones.
+ */
 export interface OnomancyRuntime {
   /**
    * The DNSSEC-verified root document ids bound to `hostname`.
@@ -205,7 +213,9 @@ export function createOnomancyRuntime(
         options.dohUrl ?? null
       );
       const freshness = freshnessOf(outcome);
-      const nowMs = BigInt(Math.floor((options.now ?? Date.now)()));
+      const rawNow = (options.now ?? Date.now)();
+      const nowMs =
+        typeof rawNow === "bigint" ? rawNow : BigInt(Math.floor(rawNow));
       const selection = boundIdsOf(outcome, nowMs);
 
       const binding: HostnameBinding = { hostname, ids: selection.ids };
@@ -506,8 +516,12 @@ function modPow(base: bigint, exp: bigint, mod: bigint): bigint {
   return result;
 }
 
+/** Precomputed 2^((p-1)/4), the square-root adjustment factor. */
+const ED_SQRT_ADJ = modPow(2n, (ED_P - 1n) / 4n, ED_P);
+
 /** Whether 32 bytes decompress to a point on the edwards25519 curve. */
 function isCurvePoint(bytes: Uint8Array): boolean {
+  if (bytes.length !== 32) return false;
   // Little-endian y with the top bit as the x-parity flag.
   let y = 0n;
   for (let i = 31; i >= 0; i--) y = (y << 8n) | BigInt(bytes[i]!);
@@ -529,7 +543,7 @@ function isCurvePoint(bytes: Uint8Array): boolean {
   if (vx2 === u) {
     // x is the root.
   } else if (vx2 === (ED_P - u) % ED_P) {
-    x = (x * modPow(2n, (ED_P - 1n) / 4n, ED_P)) % ED_P;
+    x = (x * ED_SQRT_ADJ) % ED_P;
   } else {
     return false;
   }
@@ -573,7 +587,15 @@ export function parseRecordDocId(record: string): string | undefined {
 
 function base64ToBytes(base64: string): Uint8Array | undefined {
   try {
-    return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    // Canonical spellings only. atob is forgiving - it accepts unpadded
+    // input and ignores nonzero trailing bits in the final character - so
+    // without the round-trip, one key has many spellings and parsers
+    // disagree about which records exist (the differential class the
+    // grammar's strict-decoding rule exists to kill; the reference decoder
+    // "requires canonical padding and rejects set trailing bits").
+    if (btoa(String.fromCharCode(...bytes)) !== base64) return undefined;
+    return bytes;
   } catch {
     return undefined;
   }

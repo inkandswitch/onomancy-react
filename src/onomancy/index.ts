@@ -24,6 +24,7 @@ export {
   parseRecord,
   parseRecordDocId,
 } from "./runtime.js";
+export type { Ono0Record } from "./runtime.js";
 export type {
   HostnameBinding,
   OnomancyModule,

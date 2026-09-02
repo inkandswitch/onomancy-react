@@ -295,12 +295,19 @@ export function createOnomancyDirectory(
               : { phase: "no-claim" }
           );
         } else if (isReplay(hostname, binding)) {
+          // Deliberate ordering: a replayed serial reads `replayed` even if
+          // the replayed set is also contested — the replay is the stronger
+          // statement (this exact data is known superseded).
           // A stale chain bearing a serial no higher than one already
           // accepted for this name. The zone — or something on the path —
           // is serving a record we know to be superseded.
           resolutions.set(hostname, { phase: "replayed" });
         } else {
-          admitToRatchet(hostname, binding);
+          // The ratchet remembers the highest serial ACCEPTED. A contested
+          // set was refused, not accepted: admitting its serial would make a
+          // zone that heals the rotation without bumping the serial read
+          // `replayed` forever on stale chains.
+          if (!binding.contested) admitToRatchet(hostname, binding);
 
           const resolved: Resolution = {
             phase: "resolved",
