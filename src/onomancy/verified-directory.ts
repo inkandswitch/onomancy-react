@@ -483,8 +483,14 @@ export function createOnomancyDirectory(
   const publish = base.publish?.bind(base);
   if (publish) {
     directory.publish = (entry) => {
-      // The status is a decoration, never stored.
-      const { dnsNameStatus: _status, ...stored } = entry;
+      // Verification results are decorations, never stored: they are computed
+      // per lookup and would otherwise persist stale in the base directory.
+      const {
+        dnsNameStatus: _status,
+        dnsNameFreshness: _freshness,
+        dnsNameLapsedSeconds: _lapsed,
+        ...stored
+      } = entry;
       return publish(stored);
     };
   }
