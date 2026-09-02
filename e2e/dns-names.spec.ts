@@ -56,9 +56,14 @@ test.describe("DNS names verified through onomancy", () => {
     await openApp(page);
 
     await claimDnsName(page, "nodots");
+    // The wording is onomancy's, not ours: claims are parsed by the grammar
+    // from the spec rather than by a hand-rolled check that could drift
+    // from it. Asserted loosely for that reason — what matters is that the
+    // claim is refused and nothing is stored.
     await expect(section(page, "Account").getByRole("alert")).toContainText(
-      "at least one dot"
+      /dotless/i
     );
+    await expect(badge(page, "@nodots")).not.toBeVisible();
   });
 
   test("clearing the field withdraws the claim", async ({ page }) => {

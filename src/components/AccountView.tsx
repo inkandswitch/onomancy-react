@@ -17,6 +17,12 @@ export interface AccountViewProps {
    */
   showDnsName?: boolean;
   /**
+   * Canonicalise and validate a typed DNS name claim. Forwarded to
+   * `ProfileEditor`; pass `runtime.normalizeDnsName` from
+   * `@automerge/keyhive-react/onomancy` to reject bad claims at entry.
+   */
+  normalizeDnsName?: (raw: string) => string;
+  /**
    * Publish the contact card into the directory so someone who finds this
    * account by name can share with it without needing a new contact card.
    */
@@ -38,6 +44,7 @@ export function AccountView({
   onCancel,
   showIdentifiers = true,
   showDnsName = true,
+  normalizeDnsName,
   publishContactCard = false,
   fallbackAvatarSrc,
   className = "",
@@ -50,6 +57,7 @@ export function AccountView({
       kind="individual"
       peerId={self.peerId}
       showDnsName={showDnsName}
+      {...(normalizeDnsName ? { normalizeDnsName } : {})}
       contactCardJson={publishContactCard ? self.contactCardJson : undefined}
       namePlaceholder="Enter your name"
       onSaved={onSaved}

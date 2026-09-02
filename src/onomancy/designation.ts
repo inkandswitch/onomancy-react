@@ -1,10 +1,20 @@
 import type { AutomergeRepoKeyhiveBase } from "@automerge/automerge-repo-keyhive";
-import { bytesToHex, hexToBytes } from "../bytes.js";
+import {
+  bareId,
+  documentDelegatesTo,
+  type DocumentDelegationOptions,
+} from "../access/delegation.js";
 import type { DirectoryEntry } from "../directory/types.js";
 import type { KeyhiveRuntime } from "../runtime.js";
 
 /**
  * Whether a DNS binding's root documents designate an identity.
+ *
+ * Deliberately *not* the same type as `DelegationVerdict`, though both have
+ * three values. `excludes` here means the domain designates somebody else,
+ * which is a different fact from a delegation existing below the required
+ * level — and the two collapse into one only at this boundary, where every
+ * keyhive reason for "not them" becomes the single DNS answer "not them".
  *
  * `unknown` is for verdicts the local device cannot reach: the designated
  * document exists but is not held here, so membership can be checked only
@@ -26,69 +36,57 @@ export type DnsDesignation = (
 /**
  * The solo case: the bound id is the identity itself. This is the default,
  * and the right check when accounts anchor domains directly to their key.
+ *
+ * A bound id that is somebody else's `excludes`, because a record naming a
+ * different identity is a positive statement about who the domain means.
  */
 export const idEqualityDesignation: DnsDesignation = (entry, boundIds) =>
-  boundIds.includes(bareId(entry.id)) ? "designates" : "excludes";
+  boundIds.map(bareId).includes(bareId(entry.id)) ? "designates" : "excludes";
 
-export interface KeyhiveDesignationOptions {
-  /**
-   * The least access that counts as the domain designating someone, as
-   * `Access.fromString` accepts it. Admin by default: controlling the root
-   * namestore document is what owning the name means.
-   */
-  minimumAccess?: string;
-}
+export type KeyhiveDesignationOptions = DocumentDelegationOptions;
 
 /**
  * Designation through keyhive: the domain binds a root namestore document,
- * and the identities the document delegates admin access to are the ones it
+ * and the identities that document delegates admin access to are the ones it
  * designates. Ownership is shared by inviting more admins; the DNS record
  * never changes.
+ *
+ * A composition, not an implementation. The DNS half is here; the keyhive
+ * half is {@link documentDelegatesTo}, which knows nothing about domains.
  *
  * The solo case is included: a bound id that is the identity itself
  * designates directly, so anchors of either shape verify.
  *
- * Only the document's own delegations are consulted, so an identity holding
- * admin through a nested group is `unknown` here, not excluded. A document
- * this device has not synced is `unknown` too.
+ * Inherits {@link documentDelegatesTo}'s limit — an identity holding admin
+ * through a nested group reads `unknown`, never `excludes`.
  */
 export function createKeyhiveDesignation(
   runtime: KeyhiveRuntime,
   hive: AutomergeRepoKeyhiveBase,
   options: KeyhiveDesignationOptions = {}
 ): DnsDesignation {
-  const level = options.minimumAccess ?? "admin";
-
   return async (entry, boundIds) => {
-    const entryId = bareId(entry.id);
-    if (boundIds.includes(entryId)) return "designates";
+    const identityId = bareId(entry.id);
+    // The domain may anchor the key directly rather than a document.
+    if (boundIds.map(bareId).includes(identityId)) return "designates";
 
-    const minimum = runtime.Access.fromString(level);
-    let anyHeld = false;
-    let anyDirectMember = false;
+    const verdict = await documentDelegatesTo(
+      runtime,
+      hive,
+      boundIds,
+      identityId,
+      options
+    );
 
-    for (const boundId of boundIds) {
-      const document = await hive.keyhive.getDocument(
-        new runtime.DocumentId(hexToBytes(boundId))
-      );
-      if (!document) continue;
-      anyHeld = true;
-
-      for (const capability of await document.members()) {
-        const memberId = bytesToHex(capability.who.id.toBytes());
-        if (memberId !== entryId) continue;
-        anyDirectMember = true;
-        if (capability.can.atLeast(minimum)) return "designates";
-      }
+    // Every keyhive reason for "not them" is the one DNS answer "not them";
+    // "no answer" stays "no answer" across the boundary.
+    switch (verdict) {
+      case "delegates":
+        return "designates";
+      case "insufficient":
+        return "excludes";
+      default:
+        return "unknown";
     }
-
-    // Only a direct delegation below the minimum excludes. An unheld
-    // document proves nothing, and neither does absence from the direct
-    // members: access may route through a group this check does not walk.
-    return anyHeld && anyDirectMember ? "excludes" : "unknown";
   };
-}
-
-function bareId(id: string): string {
-  return (id.startsWith("0x") ? id.slice(2) : id).toLowerCase();
 }

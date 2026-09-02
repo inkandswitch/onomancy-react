@@ -13,8 +13,8 @@ pnpm add @automerge/keyhive-react
 `@automerge/automerge-repo-keyhive`, `@automerge/react` and `react` are peer
 dependencies. The package imports none of them at runtime (see
 [The keyhive runtime](#the-keyhive-runtime)), so the application's copy is the
-only one loaded. `@inkandswitch/onomancy` is an optional peer dependency,
-supplied the same way, for [DNS names](#dns-names).
+only one loaded. [DNS names](#dns-names) work the same way, through the
+separate `@automerge/keyhive-react/onomancy` entry point.
 
 ## What is in it
 
@@ -105,6 +105,28 @@ DNSSEC-protected `_onomancy` TXT record whose `p=` field is the identity's
 ed25519 verifying key, and the record is validated locally from the IANA root
 — no registry, no certificate authority, and no trust in whoever relayed it.
 
+### Where the pieces live
+
+This package keeps the _vocabulary_ and sheds the _mechanism_. The main entry
+point knows what a claim is, what the six statuses mean, and how to render
+them; it resolves nothing. Everything that performs DNS lives behind a
+separate import:
+
+```ts
+import { DnsNameBadge, type DnsNameStatus } from "@automerge/keyhive-react";
+import { useOnomancyDirectory } from "@automerge/keyhive-react/onomancy";
+```
+
+So the subpath is optional in practice. An application that computes
+`dnsNameStatus` itself — because it already holds onomancy, or verifies
+against something that is not DNS — uses the components and the
+`DirectoryEntry` fields without importing any of it. The rules such a status
+must obey are documented on `DnsNameStatus`, which stays on the main entry so
+it binds either way.
+
+The isolation guarantee covers both entry points: neither imports anything
+but React, and the build fails if that stops being true.
+
 Like keyhive, onomancy is Wasm-backed, so the application supplies its own
 copy through a runtime and this package imports nothing:
 
@@ -113,7 +135,7 @@ import * as onomancy from "@inkandswitch/onomancy";
 import {
   createOnomancyRuntime,
   useOnomancyDirectory,
-} from "@automerge/keyhive-react";
+} from "@automerge/keyhive-react/onomancy";
 
 const onomancyRuntime = createOnomancyRuntime(onomancy);
 
@@ -152,12 +174,57 @@ not synced reads `unsynced` — not evidence either way — until a replica
 arrives.
 
 `AccountView` offers the field for claiming a name (turn it off with
-`showDnsName={false}`). Publishing an empty string withdraws the claim.
+`showDnsName={false}`). Publishing an empty string withdraws the claim. Pass
+`normalizeDnsName={onomancyRuntime.normalizeDnsName}` to reject a malformed
+claim as it is typed, against onomancy's own grammar; without it the field
+canonicalises spelling but cannot tell a hostname from a typo, and the bad
+claim is stored and later rendered `invalid`.
+
+### Why a forgeable claim is safe to store
+
+The directory holding these claims is ordinary data. Anyone who can write to
+it can write anything into it, including somebody else's domain. That is fine:
+
+> A claim is forgeable. A badge is not. Anyone can write
+> `dnsName: "example.com"` into anyone's entry, but the badge is not read from
+> the document — it comes from resolving the domain and checking what that
+> domain designates. A forged claim renders `mismatch` or `unreachable`.
+> Nobody can write their way to `verified`.
+>
+> The document carries the assertion. DNS carries the authority.
+
+This is why the directory abstraction can stay data-only and swappable, why a
+directory document that anyone holding its id may write is an acceptable place
+to keep claims, and why `publish` strips `dnsNameStatus` before writing.
+
+### The errors run one way
 
 A verified badge proves that the domain, as attested by a DNSSEC chain from
 the IANA root during the chain's signature window, designated this identity.
 It proves nothing about the domain owner's intentions, and nothing about any
 other name.
+
+The design has **no false positives and real false negatives**, deliberately:
+
+- It will not wrongly verify. Every path to `verified` requires positive
+  evidence from outside the document.
+- It will sometimes fail to verify someone legitimate. A record that fails to
+  parse reads `unreachable`; a designated document this device has not synced
+  reads `unsynced`; and an identity holding admin _through a group_ reads
+  `unsynced` too, because keyhive's `members()` reports a document's own
+  delegations and those do not change when a group that already has access
+  gains a member.
+
+That last one is a real gap and worth stating precisely. Fixing the _wording_
+is possible today; fixing the _verdict_ is not. The only evidence available
+about indirect access is `cgkaMembers()`, which returns bare `Identifier`s —
+and `Identifier` carries no access level at all, so it can never satisfy an
+admin minimum. Verifying a nested-group admin needs transitive delegations
+_with_ their capabilities, which no current API exposes.
+
+Never wrongly verifying while sometimes failing to verify is the right trade
+for a naming system, and the gap above is an instance of that choice rather
+than an exception to it.
 
 ## Styling
 

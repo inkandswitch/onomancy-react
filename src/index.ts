@@ -29,29 +29,16 @@ export type {
 } from "./directory/automerge-directory.js";
 export { useAutomergeDocDirectory } from "./directory/useAutomergeDocDirectory.js";
 
-export {
-  createOnomancyRuntime,
-  normalizeDnsName,
-  parseRecordDocId,
-} from "./onomancy/runtime.js";
+// DNS name verification lives in `@automerge/keyhive-react/onomancy`. This
+// entry point knows what a claim is and how to render one; it does not
+// resolve anything. `DnsNameStatus` carries the rules a status must follow,
+// whoever computes it.
+
+export { documentDelegatesTo } from "./access/delegation.js";
 export type {
-  HostnameBinding,
-  OnomancyModule,
-  OnomancyRuntime,
-  OnomancyRuntimeOptions,
-} from "./onomancy/runtime.js";
-export {
-  createKeyhiveDesignation,
-  idEqualityDesignation,
-} from "./onomancy/designation.js";
-export type {
-  DesignationVerdict,
-  DnsDesignation,
-  KeyhiveDesignationOptions,
-} from "./onomancy/designation.js";
-export { createOnomancyDirectory } from "./onomancy/verified-directory.js";
-export type { OnomancyDirectoryOptions } from "./onomancy/verified-directory.js";
-export { useOnomancyDirectory } from "./onomancy/useOnomancyDirectory.js";
+  DelegationVerdict,
+  DocumentDelegationOptions,
+} from "./access/delegation.js";
 
 export {
   agentKindOf,

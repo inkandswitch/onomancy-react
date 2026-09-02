@@ -9,6 +9,16 @@ import type {
  * The reserved top-level key onomancy namestore data lives under when the
  * directory document doubles as a root namestore. Never a directory entry:
  * profile entries and namestore edges share the document without colliding.
+ *
+ * Co-location is a layout choice, not a requirement, and the choice is
+ * constrained by where the document's id came from. Only a self-certifying
+ * ed25519 document id can anchor a domain — onomancy rejects a legacy
+ * 16-byte Automerge id outright — so a directory document created through
+ * `repo.create2` can host both profile entries and namestore edges, while
+ * one carrying a legacy id can never be a `p=` target and needs the
+ * namestore kept separately. This filtering is correct either way: it costs
+ * nothing under the separate layout and is load-bearing under the shared
+ * one.
  */
 export const RESERVED_ONOMANCY_KEY = "onomancy";
 

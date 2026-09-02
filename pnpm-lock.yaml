@@ -17,8 +17,8 @@ importers:
         version: 0.1.0
     devDependencies:
       '@automerge/automerge-repo-keyhive':
-        specifier: 0.5.0-alpha.5b
-        version: 0.5.0-alpha.5b(ws@8.21.3)
+        specifier: 0.5.0-alpha.6
+        version: 0.5.0-alpha.6(ws@8.21.3)
       '@automerge/react':
         specifier: 2.6.0-subduction.48
         version: 2.6.0-subduction.48(react-dom@19.2.8(react@18.3.1))(react@18.3.1)
@@ -74,8 +74,8 @@ importers:
         specifier: 2.6.0-subduction.48
         version: 2.6.0-subduction.48
       '@automerge/automerge-repo-keyhive':
-        specifier: 0.5.0-alpha.5b
-        version: 0.5.0-alpha.5b(ws@8.21.3)
+        specifier: 0.5.0-alpha.6
+        version: 0.5.0-alpha.6(ws@8.21.3)
       '@automerge/automerge-repo-storage-indexeddb':
         specifier: 2.6.0-subduction.48
         version: 2.6.0-subduction.48
@@ -126,8 +126,8 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@automerge/automerge-repo-keyhive@0.5.0-alpha.5b':
-    resolution: {integrity: sha512-oBpkFltC+mRSVtH5jTS8OHI+CIte7xpEDoRPdUOgRSBZGWnTGvN97EhysRW1ZtNT1xeau/nWGuIzAmod44tEFg==}
+  '@automerge/automerge-repo-keyhive@0.5.0-alpha.6':
+    resolution: {integrity: sha512-74Q/YgdhMHq8AMt+ediPuod7hm9kqp2wS9femw6srw5P3ImTbOiXU7sq7Fns+113qadbmIf8U8RhHFBFduUldw==}
     engines: {node: '>=22.13'}
 
   '@automerge/automerge-repo-network-broadcastchannel@2.6.0-subduction.48':
@@ -1572,7 +1572,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@automerge/automerge-repo-keyhive@0.5.0-alpha.5b(ws@8.21.3)':
+  '@automerge/automerge-repo-keyhive@0.5.0-alpha.6(ws@8.21.3)':
     dependencies:
       '@automerge/automerge-repo': 2.6.0-subduction.48
       '@automerge/automerge-repo-network-websocket': 2.6.0-subduction.48

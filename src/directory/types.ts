@@ -15,6 +15,33 @@ export type DirectoryEntryKind = "individual" | "group";
  * - `unsynced`: the domain designates a document this device has not synced,
  *   so membership cannot be checked yet. Also proves nothing either way.
  * - `invalid`: the claim is not a DNS name at all.
+ *
+ * ## Rules for anyone producing a status
+ *
+ * This library renders these six values; it does not require that it be the
+ * thing that computes them. Applications that verify claims themselves must
+ * follow the same rules, because the badge means the same thing to a reader
+ * whichever code produced it.
+ *
+ * 1. **`mismatch` requires a record that designates somebody.** A hostname
+ *    that resolves and DNSSEC-validates but whose records all fail strict
+ *    `v=ONO0` parsing proves nothing about any identity, so it is
+ *    `unreachable`. This is not hypothetical: a live record was once a
+ *    hex-encoded `g=` field followed by a truncated `p=`, and every parse
+ *    rejected. Reporting that as `mismatch` would accuse the claimant on
+ *    the strength of somebody's typo.
+ * 2. **`unreachable` and `unsynced` are the absence of an answer**, never a
+ *    weak `mismatch`. Do not collapse them into it, and do not collapse
+ *    them into each other: the first means the DNS layer said nothing, the
+ *    second that it spoke and the local device cannot yet check the reply.
+ * 3. **`verified` requires positive evidence**, never the absence of
+ *    contrary evidence.
+ * 4. **Do not invent a seventh value.** A status outside this set has no
+ *    rendering and no agreed meaning.
+ *
+ * The errors this design tolerates run one way: it will not wrongly verify,
+ * and it will sometimes fail to verify someone legitimate. Preserve that
+ * asymmetry — it is what makes a badge worth trusting.
  */
 export type DnsNameStatus =
   "pending" | "verified" | "mismatch" | "unreachable" | "unsynced" | "invalid";
@@ -40,9 +67,13 @@ export interface DirectoryEntry {
    */
   dnsName?: string;
   /**
-   * Set by a verifying directory (see `createOnomancyDirectory`), never
-   * stored. Absent when the entry claims no DNS name or the directory does
-   * not verify.
+   * Set by whatever verifies claims — `createOnomancyDirectory` from
+   * `@automerge/keyhive-react/onomancy`, or the application's own
+   * equivalent. A decoration, never stored: directories strip it on
+   * publish. Absent when the entry claims no DNS name, or when nothing in
+   * scope verifies.
+   *
+   * Producers must follow the rules on {@link DnsNameStatus}.
    */
   dnsNameStatus?: DnsNameStatus;
 }

@@ -4,11 +4,8 @@ import {
   type AutomergeUrl,
   type Repo,
 } from "@automerge/react/slim";
-import {
-  hexToBytes,
-  RESERVED_ONOMANCY_KEY,
-  type OnomancyRuntime,
-} from "@automerge/keyhive-react";
+import { hexToBytes, RESERVED_ONOMANCY_KEY } from "@automerge/keyhive-react";
+import type { OnomancyRuntime } from "@automerge/keyhive-react/onomancy";
 
 /**
  * The path-resolution walk over locally held documents, per the onomancy

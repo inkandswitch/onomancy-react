@@ -1,6 +1,23 @@
 import { bytesToHex } from "../bytes.js";
 
 /**
+ * A parsed onomancy name. Structurally `@inkandswitch/onomancy`'s `Name`,
+ * declared here so this package needs no import of its own.
+ */
+export interface OnomancyName {
+  /** The anchor in printed form: `~`, `@expede.wtf`, or `automerge:…`. */
+  readonly anchor: string;
+  /** The trust anchor kind: `"local"`, `"dns"`, or `"doc"`. */
+  readonly anchorKind: string;
+  /** The path segments, one edge hop each. */
+  readonly segments: string[];
+  /** The canonical printed form. */
+  readonly value: string;
+  /** Wasm handles are disposable; called when present. */
+  free?(): void;
+}
+
+/**
  * The subset of `@inkandswitch/onomancy`'s exports this package needs supplied
  * by the application, so that the Wasm module is loaded once and only by the
  * host. See `KeyhiveRuntime` for the same pattern applied to keyhive.
@@ -12,6 +29,14 @@ export interface OnomancyModule {
    * `{ hostname, links, freshness, records: string[] }`.
    */
   resolveHostname(hostname: string, dohUrl?: string | null): Promise<unknown>;
+
+  /**
+   * The name grammar itself. Parsing claims through it rather than by hand
+   * means this package cannot drift from the spec: canonicalisation,
+   * dotless names, IP literals and label rules are all decided by the same
+   * code that decides them everywhere else.
+   */
+  Name: new (raw: string) => OnomancyName;
 }
 
 export interface OnomancyRuntimeOptions {
@@ -40,20 +65,59 @@ export interface OnomancyRuntime {
    * Rejects on malformed hostnames, transport failures, and invalid chains.
    */
   resolveBoundIds(hostname: string): Promise<HostnameBinding>;
+
+  /**
+   * A claimed DNS name in canonical form: lowercased, with the leading `@`
+   * and any trailing dot removed.
+   *
+   * Throws on anything the onomancy grammar rejects as a DNS anchor —
+   * dotless names, IP literals, malformed labels — and on a claim that
+   * carries path segments, since a claim names a host and not a path.
+   */
+  normalizeDnsName(raw: string): string;
 }
 
-/** Build a runtime from the application's own onomancy import. */
+/**
+ * Build a runtime from the application's own onomancy import.
+ *
+ * Every member is an arrow function closing over `onomancy`, never a method
+ * reading `this`. That is deliberate and load-bearing: consumers pass these
+ * detached — `normalizeDnsName` goes to `ProfileEditor` as a prop — and a
+ * member that grew a `this` would break every such call site at runtime
+ * with nothing at the type level to warn them. Arrow functions have no own
+ * `this`, so the mistake cannot be made here rather than merely not having
+ * been made yet.
+ */
 export function createOnomancyRuntime(
   onomancy: OnomancyModule,
   options: OnomancyRuntimeOptions = {}
 ): OnomancyRuntime {
   return {
-    async resolveBoundIds(hostname) {
+    resolveBoundIds: async (hostname) => {
       const outcome = await onomancy.resolveHostname(
         hostname,
         options.dohUrl ?? null
       );
       return { hostname, ids: boundIdsOf(outcome) };
+    },
+
+    normalizeDnsName: (raw) => {
+      const trimmed = raw.trim();
+      // The grammar requires a sigil; a claim is stored without one.
+      const spelled = trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+
+      const name = new onomancy.Name(spelled);
+      try {
+        if (name.anchorKind !== "dns") {
+          throw new Error(`Not a DNS name: "${raw}"`);
+        }
+        if (name.segments.length > 0) {
+          throw new Error(`A DNS name claim cannot have a path: "${raw}"`);
+        }
+        return name.anchor.slice(1);
+      } finally {
+        name.free?.();
+      }
     },
   };
 }
@@ -76,6 +140,9 @@ function boundIdsOf(outcome: unknown): string[] {
  * The hex-encoded root document id of one TXT record, or `undefined` when the
  * record is not a well-formed `v=ONO0` record. Parsing is strict within the
  * known tag, per the DNS anchoring spec: exact field order, known fields only.
+ *
+ * Hand-written on purpose: this is the TXT wire format, which `Name` does not
+ * parse. `Name` decides what a *name* is; this decides what a *record* is.
  */
 export function parseRecordDocId(record: string): string | undefined {
   const match = record.match(
@@ -93,34 +160,4 @@ function base64ToBytes(base64: string): Uint8Array | undefined {
   } catch {
     return undefined;
   }
-}
-
-/**
- * Parse a claimed DNS name into its canonical form: lowercase, leading `@`
- * and trailing dot stripped. Throws on names the DNS anchoring grammar
- * rejects, such as dotless names and IP literals.
- */
-export function normalizeDnsName(raw: string): string {
-  let name = raw.trim().toLowerCase();
-  if (name.startsWith("@")) name = name.slice(1);
-  if (name.endsWith(".")) name = name.slice(0, -1);
-
-  if (name.length === 0 || name.length > 253) {
-    throw new Error(`Not a DNS name: "${raw}"`);
-  }
-  const labels = name.split(".");
-  // A dotless name is a flat parse error, never a hostname.
-  if (labels.length < 2) {
-    throw new Error(`A DNS name needs at least one dot: "${raw}"`);
-  }
-  for (const label of labels) {
-    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(label) || label.length > 63) {
-      throw new Error(`Not a DNS label: "${label}" in "${raw}"`);
-    }
-  }
-  // IP literals are rejected under `@`.
-  if (labels.every((label) => /^\d+$/.test(label))) {
-    throw new Error(`IP literals cannot be onomancy names: "${raw}"`);
-  }
-  return name;
 }

@@ -30,12 +30,11 @@ function contactResult(page: Page, name: string) {
 }
 
 test.describe("names shared through a directory document", () => {
-  // Keyhive delegations sync between profiles (the grant shows up on both
-  // sides), but Automerge document CONTENTS do not currently arrive at a
-  // second profile — the pre-existing Document section has the same gap
-  // ("Loading the document…" forever, access Read). Un-skip when
-  // cross-profile document sync works in the underlying stack.
-  test.fixme("two identities see each other's names after sharing one directory", async ({
+  // Previously skipped: on @automerge/automerge-repo-keyhive 0.5.0-alpha.5b,
+  // keyhive delegations synced between profiles (the grant showed up on both
+  // sides) but Automerge document CONTENTS never arrived at the second
+  // profile — with Edit here, and with Read in the Document section.
+  test("two identities see each other's names after sharing one directory", async ({
     page,
     browser,
   }) => {

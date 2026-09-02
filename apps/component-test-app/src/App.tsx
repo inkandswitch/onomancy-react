@@ -21,19 +21,21 @@ import {
   CopyableField,
   createDocumentTarget,
   createGroupTarget,
-  createKeyhiveDesignation,
-  createOnomancyRuntime,
   DirectoryProvider,
-  idEqualityDesignation,
   type DirectoryDoc,
-  type DnsDesignation,
   type NameDirectory,
   AccessEditor,
   ProfileEditor,
   useAutomergeDocDirectory,
   useKeyhiveUpdates,
-  useOnomancyDirectory,
 } from "@automerge/keyhive-react";
+import {
+  createKeyhiveDesignation,
+  createOnomancyRuntime,
+  idEqualityDesignation,
+  useOnomancyDirectory,
+  type DnsDesignation,
+} from "@automerge/keyhive-react/onomancy";
 import { composeDirectories } from "./composeDirectories";
 import { DocumentPanel, LoadDocument } from "./DocumentPanel";
 import {
@@ -253,6 +255,7 @@ export default function App({ hive, repo }: AppProps) {
         onBindName={bindName}
         onResolveName={resolveName}
         bindReady={directoryDoc !== undefined}
+        normalizeDnsName={onomancyRuntime.normalizeDnsName}
       />
     </DirectoryProvider>
   );
@@ -264,6 +267,12 @@ interface TestAppProps extends AppProps {
   onBindName: (path: string, url: AutomergeUrl) => Promise<string>;
   onResolveName: (raw: string) => Promise<Resolution>;
   bindReady: boolean;
+  /**
+   * The onomancy grammar, so a typed claim is rejected at entry rather than
+   * stored and later rendered `invalid`. The library's components know what
+   * a claim is; only the app holds the parser that decides one.
+   */
+  normalizeDnsName: (raw: string) => string;
 }
 
 function TestApp({
@@ -274,6 +283,7 @@ function TestApp({
   onBindName,
   onResolveName,
   bindReady,
+  normalizeDnsName,
 }: TestAppProps) {
   const keyhiveVersion = useKeyhiveUpdates(hive);
   const [docUrl, setDocUrl] = useState<AutomergeUrl | null>(null);
@@ -368,7 +378,11 @@ function TestApp({
           Names are written to the shared directory document below, with a local
           copy kept in this browser.
         </p>
-        <AccountView hive={hive} publishContactCard />
+        <AccountView
+          hive={hive}
+          publishContactCard
+          normalizeDnsName={normalizeDnsName}
+        />
       </section>
 
       <section>

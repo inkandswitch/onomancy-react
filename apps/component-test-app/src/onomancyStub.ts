@@ -1,5 +1,5 @@
 import * as onomancy from "@inkandswitch/onomancy";
-import type { OnomancyModule } from "@automerge/keyhive-react";
+import type { OnomancyModule } from "@automerge/keyhive-react/onomancy";
 
 /**
  * Real onomancy for real domains; deterministic outcomes under `.test`, so
@@ -14,6 +14,10 @@ import type { OnomancyModule } from "@automerge/keyhive-react";
  */
 export function createStubOnomancy(selfIdHex: string): OnomancyModule {
   return {
+    // The grammar is never stubbed: `.test` hostnames are ordinary DNS
+    // names, so parsing them is the real parser's job either way.
+    Name: onomancy.Name,
+
     resolveHostname(hostname: string, dohUrl?: string | null) {
       if (!hostname.endsWith(".test")) {
         return onomancy.resolveHostname(hostname, dohUrl);

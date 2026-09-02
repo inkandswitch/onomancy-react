@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useDirectory, useDirectoryEntry } from "../directory/context.js";
 import type { DirectoryEntry, DirectoryEntryKind } from "../directory/types.js";
-import { normalizeDnsName } from "../onomancy/runtime.js";
 import { Avatar } from "./primitives/Avatar.js";
 import { DnsNameBadge } from "./primitives/DnsNameBadge.js";
 
@@ -21,6 +20,21 @@ export interface ProfileEditorProps {
    * domain's DNSSEC-protected `_onomancy` TXT record.
    */
   showDnsName?: boolean;
+  /**
+   * Canonicalise a typed claim, throwing on anything that is not a DNS
+   * name; the message is shown to the user and nothing is published.
+   *
+   * Pass `runtime.normalizeDnsName` from
+   * `@automerge/keyhive-react/onomancy` to reject bad claims at entry
+   * against the real grammar. Without it this field still canonicalises
+   * spelling — trimming, lowercasing, dropping a leading `@` and a trailing
+   * dot — but cannot tell a hostname from a typo, and an unparseable claim
+   * is stored and later rendered `invalid` by whatever verifies it.
+   *
+   * Spelling is presentation; grammar is not. This component owns the first
+   * and takes the second from you.
+   */
+  normalizeDnsName?: (raw: string) => string;
   dnsNameLabel?: string;
   dnsNamePlaceholder?: string;
   saveLabel?: string;
@@ -32,6 +46,17 @@ export interface ProfileEditorProps {
   onCancel?: () => void;
   fallbackAvatarSrc?: string;
   className?: string;
+}
+
+/**
+ * Spelling, not grammar: what a field can canonicalise without knowing what
+ * a hostname is. The default when no `normalizeDnsName` is supplied.
+ */
+function canonicaliseSpelling(raw: string): string {
+  let claim = raw.trim().toLowerCase();
+  if (claim.startsWith("@")) claim = claim.slice(1);
+  if (claim.endsWith(".")) claim = claim.slice(0, -1);
+  return claim;
 }
 
 /**
@@ -47,6 +72,7 @@ export function ProfileEditor({
   nameLabel = "Name",
   namePlaceholder = "Enter a name",
   showDnsName = false,
+  normalizeDnsName = canonicaliseSpelling,
   dnsNameLabel = "DNS name",
   dnsNamePlaceholder = "@example.com",
   saveLabel = "Save",
