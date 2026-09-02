@@ -53,9 +53,13 @@ export function composeDirectories(
     },
 
     subscribe(listener) {
+      // Fresh closures, not the raw listener: a child directory that
+      // deduplicates listeners by identity would collapse two subscriptions
+      // sharing one callback, and the first unsubscribe would cancel the
+      // second subscriber's updates.
       const subscriptions = [
-        primary.subscribe?.(listener),
-        fallback.subscribe?.(listener),
+        primary.subscribe?.(() => listener()),
+        fallback.subscribe?.(() => listener()),
       ];
       return () => {
         for (const unsubscribe of subscriptions) unsubscribe?.();

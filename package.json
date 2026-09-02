@@ -50,7 +50,7 @@
     "build": "pnpm run clean && pnpm run build:js && pnpm run build:css && pnpm run check",
     "build:js": "tsc -p tsconfig.build.json",
     "build:css": "tailwindcss -c tailwind.config.js -i src/styles.css -o dist/keyhive-react.css --minify",
-    "check": "pnpm run check:isolation && pnpm run check:prefix",
+    "check": "pnpm run check:isolation && pnpm run check:prefix && pnpm run test:unit",
     "check:isolation": "node scripts/check-isolation.mjs",
     "check:prefix": "node scripts/check-prefix.mjs",
     "tsc": "tsc -p tsconfig.json",
@@ -64,7 +64,8 @@
     "app:preview": "pnpm --filter component-test-app preview",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "tsc:e2e": "tsc -p e2e/tsconfig.json"
+    "tsc:e2e": "tsc -p e2e/tsconfig.json",
+    "test:unit": "node --test tests/*.test.mjs"
   },
   "peerDependencies": {
     "@automerge/automerge-repo-keyhive": ">=0.5.0-alpha.6",
