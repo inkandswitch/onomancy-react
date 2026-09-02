@@ -31,8 +31,14 @@
     "./styles.css": "./dist/onomancy-react.css",
     "./package.json": "./package.json"
   },
-  "files": ["dist", "src", "README.md"],
-  "sideEffects": ["*.css"],
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
   "publishConfig": {
     "access": "public"
   },
