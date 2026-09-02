@@ -15,10 +15,9 @@ import {
  *
  * The wrapper is still memoized on `base`, so a directory backed by a live
  * Automerge document is rebuilt on every write — the document is a new
- * object each time. What no longer happens is the rebuild throwing away
- * every verdict with it: the cache lives in a ref, outlives the wrapper, and
- * so a rebuild costs a wrapper allocation rather than a fresh DoH round trip
- * per claimed hostname.
+ * object each time. The cache lives in a ref and outlives the wrapper, so a
+ * rebuild costs a wrapper allocation rather than a fresh DoH round trip per
+ * claimed hostname.
  *
  * Pass `options.cache` to share results more widely, or to hold the handle
  * you need for `clearVerificationCache`.

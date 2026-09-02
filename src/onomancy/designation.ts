@@ -64,12 +64,15 @@ export type KeyhiveDesignationOptions = DocumentDelegationOptions;
  *
  * There is no bare-key case: `p=` MUST name a root document
  * (specs/anchoring/dns-anchor.md §TXT fields), and a key alone is not an
- * identity — the same bytes may be delegated in more than one document. A
- * `p=` naming an individual reaches `documentDelegatesTo`, finds no document
- * under that id, and grades `unknown`: not refuted, not proven.
+ * identity — the same bytes may be delegated in more than one document. The
+ * spec's "solo publisher" allowance is about `g=` (a solo publisher's
+ * generation key may be their own admin key); it is not permission for `p=`
+ * to skip the document. A `p=` naming an individual reaches
+ * `documentDelegatesTo`, finds no document under that id, and grades
+ * `unknown`: not refuted, not proven.
  *
- * Inherits {@link documentDelegatesTo}'s limit — an identity holding admin
- * through a nested group reads `unknown`, never `excludes`.
+ * The delegation walk is transitive, so admin held through a nested group
+ * designates exactly as direct admin does.
  */
 export function createKeyhiveDesignation(
   runtime: KeyhiveRuntime,

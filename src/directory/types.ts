@@ -35,12 +35,14 @@ export type DirectoryEntryKind = "individual" | "group";
  *   so membership cannot be checked yet. Proves nothing either way.
  * - `invalid`: the claim is not a DNS name at all.
  *
- * ### Why the non-answers are separate values
+ * ### Why the non-verdicts are separate values
  *
- * They carry different remedies — retry, fix the input, tell the domain
- * owner, wait for a clock, trust nothing from this zone — and the remedy is
- * the only thing a badge can act on. Collapsing them tells a user with a
- * typo to check their network.
+ * They carry different remedies, and the remedy is the only thing a badge
+ * can act on: retry (`offline`), fix the input (`malformed`), nothing to
+ * prove (`no-claim`), wait (`unsynced`, `deferred`, `pending`). The two
+ * security signals — `chain-failed`, `replayed` — are not non-answers and
+ * must never render as absences. Collapsing any of these tells a user with
+ * a typo to check their network.
  *
  * ## Rules for anyone producing a status
  *

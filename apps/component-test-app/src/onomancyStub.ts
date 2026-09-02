@@ -28,6 +28,10 @@ export function createStubOnomancy(selfIdHex: string): OnomancyModule {
         case "other.test":
           return Promise.resolve(outcome(hostname, "ab".repeat(32)));
         default:
+          // A plain Error with no `reason` property: the directory's
+          // conservative fallback maps it to `offline`, and the e2e
+          // assertions depend on that. Adding a typed reason here changes
+          // which status renders.
           return Promise.reject(
             new Error(`No onomancy binding for ${hostname}`)
           );

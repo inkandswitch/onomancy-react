@@ -48,7 +48,7 @@ test.describe("DNS names verified through onomancy", () => {
     );
   });
 
-  test("an unresolvable domain is marked unreachable, not failed", async ({
+  test("an unresolvable domain is marked offline, not failed", async ({
     page,
   }) => {
     await openApp(page);

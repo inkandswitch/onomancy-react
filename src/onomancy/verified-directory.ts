@@ -22,12 +22,11 @@ type Resolution =
       freshness?: ChainFreshness;
       lapsedSeconds?: number;
     }
-  // The reason the DNS layer gave no usable answer. These are separate
-  // phases rather than one `unreachable` because they carry different
-  // remedies: `offline` says retry, `malformed` says fix the claim,
-  // `no-claim` says the domain is not claiming anyone and no amount of
-  // waiting will change that, and `chain-failed` says something arrived and
-  // failed to verify — the only one of the four with a security reading.
+  // The reason the DNS layer gave no usable answer, one phase per remedy:
+  // `offline` says retry, `malformed` says fix the claim, `no-claim` says
+  // the domain is not claiming anyone, `deferred` says wait for a clock —
+  // and `chain-failed` and `replayed` are security signals: evidence
+  // arrived and failed.
   | { phase: "offline" }
   | { phase: "malformed" }
   | { phase: "no-claim" }
@@ -54,19 +53,6 @@ type Verdict =
  * document arrives — so {@link clearVerificationVerdicts} re-checks it
  * without discarding resolutions.
  */
-/**
- * One `subscribe` call.
- *
- * A wrapper rather than the bare function, because a `Set` of functions
- * deduplicates by identity: two components passing the same stable callback
- * — a `useCallback` with no dependencies, say — would register once, and the
- * first unsubscribe would silently cancel the second's subscription. Each
- * call gets its own object, so registrations count rather than collapse.
- */
-interface Subscriber {
-  readonly notify: () => void;
-}
-
 interface CacheState {
   resolutions: Map<string, Resolution>;
   verdicts: Map<string, Verdict>;
@@ -84,6 +70,19 @@ interface CacheState {
    */
   ratchet: Map<string, bigint>;
   listeners: Set<Subscriber>;
+}
+
+/**
+ * One `subscribe` call.
+ *
+ * A wrapper rather than the bare function, because a `Set` of functions
+ * deduplicates by identity: two components passing the same stable callback
+ * — a `useCallback` with no dependencies, say — would register once, and the
+ * first unsubscribe would silently cancel the second's subscription. Each
+ * call gets its own object, so registrations count rather than collapse.
+ */
+interface Subscriber {
+  readonly notify: () => void;
 }
 
 /**
@@ -510,10 +509,8 @@ function bareId(id: string): string {
  * Why the DNS layer gave no answer, from the runtime's own `reason` when it
  * supplies one.
  *
- * Read off a property rather than matched from message text. Two of the
- * strings this would otherwise have keyed on changed upstream inside one
- * afternoon, so a text classifier would have broken twice in a day. `reason`
- * is a contract; the message is prose that happens to be stable.
+ * Read off a property, never matched from message text: `reason` is a
+ * contract; the message is prose and may change at any time.
  *
  * The mapping is by **remedy**, because that is the only thing the badge can
  * act on:

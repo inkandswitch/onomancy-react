@@ -5,13 +5,11 @@ import type { KeyhiveRuntime } from "../runtime.js";
 /**
  * Whether documents delegate to an identity at a required level.
  *
- * The three values are deliberately not two. `insufficient` is reachable
- * only when a delegation naming the identity was found and every one fell
- * below the minimum, so it can never mean "not a member" — though it reads
- * that way if you skim it. Everything else that is not a clear yes is
- * `unknown`: a document this device has not synced, and an identity whose
- * access routes through a group, are both the absence of an answer rather
- * than a negative one.
+ * The three values are deliberately not two. `insufficient` means a held
+ * document was walked — transitively, groups included — and does not grant
+ * the identity the minimum by any path: positive evidence of non-membership
+ * or under-delegation. `unknown` means the question could not be answered
+ * at all, because no named document is held on this device.
  *
  * Collapsing `unknown` into `insufficient` is the same error as reporting a
  * DNS name that could not be resolved as a mismatch. Absence of evidence is

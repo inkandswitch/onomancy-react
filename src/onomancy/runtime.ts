@@ -46,18 +46,12 @@ export interface OnomancyRuntimeOptions {
    * Milliseconds since the epoch. Defaults to `Date.now`.
    *
    * Injectable because the serial skew bound is a decision about *now*, and
-   * a test that cannot name the instant can only assert the behaviour it
-   * happens to observe. Upstream made the same parameter available on chain
-   * grading for the same reason, and it was the difference between a
-   * deterministic test and one that agreed with whatever it found.
+   * a test that cannot name the instant can only assert whatever behaviour
+   * it happens to observe.
    */
   now?: () => number;
 }
 
-/**
- * A DNSSEC-verified binding: the root document ids a hostname's
- * `_onomancy` TXT records designate.
- */
 /**
  * How current the DNSSEC chain was when it was graded.
  *
@@ -100,6 +94,10 @@ const MAX_DNS_NAME_LENGTH = 254;
  */
 const SERIAL_SKEW_BOUND_MS = 5n * 60n * 1000n;
 
+/**
+ * A DNSSEC-verified binding: the root document ids a hostname's
+ * `_onomancy` TXT records designate.
+ */
 export interface HostnameBinding {
   hostname: string;
   /**

@@ -101,8 +101,9 @@ An entry can claim a DNS name (`entry.dnsName`), giving an identity a
 memorable, globally shareable spelling like `@expede.wtf`. The claim is
 self-asserted until it is verified through
 [onomancy](https://github.com/inkandswitch/onomancy): the domain publishes a
-DNSSEC-protected `_onomancy` TXT record whose `p=` field is the identity's
-ed25519 verifying key, and the record is validated locally from the IANA root
+DNSSEC-protected `_onomancy` TXT record whose `p=` field names the bound
+root document (an ed25519 verifying key), and the record is validated locally
+from the IANA root
 — no registry, no certificate authority, and no trust in whoever relayed it.
 
 ### Where the pieces live
@@ -150,9 +151,11 @@ A claim is checked once, lazily, the first time its entry is read, and the
 result lands on the entry as `dnsNameStatus`, one of twelve values —
 `verified`, `mismatch`, `contested`, `offline`, `malformed`, `no-claim`,
 `chain-failed`, `replayed`, `deferred`, `unsynced`, `pending`, `invalid`.
-The five non-answers are separate values because they carry different
-remedies: retry, fix the input, tell the domain owner, wait for a clock, or
-trust nothing from this zone. `ContactBook`,
+The non-verdicts are separate values because they carry different remedies:
+retry (`offline`), fix the input (`malformed`), nothing to prove
+(`no-claim`), wait (`unsynced`, `deferred`, `pending`) — and the two
+security signals, `chain-failed` and `replayed`, must never be rendered as
+absences. `ContactBook`,
 `AccessEditor`, and `ProfileEditor` render the claim as a `DnsNameBadge`; a
 directory without the wrapper renders claims as exactly that — claims,
 visually no stronger than a self-asserted display name.
@@ -199,7 +202,8 @@ it can write anything into it, including somebody else's domain. That is fine:
 
 This is why the directory abstraction can stay data-only and swappable, why a
 directory document that anyone holding its id may write is an acceptable place
-to keep claims, and why `publish` strips `dnsNameStatus` before writing.
+to keep claims, and why `publish` strips every `dnsName*` verification decoration before
+writing.
 
 ### The errors run one way
 
@@ -236,22 +240,16 @@ The design has **no false positives and real false negatives**, deliberately:
 - It will not wrongly verify. Every path to `verified` requires positive
   evidence from outside the document.
 - It will sometimes fail to verify someone legitimate. A record that fails to
-  parse reads `no-claim`; a designated document this device has not synced
-  reads `unsynced`; and an identity holding admin _through a group_ reads
-  `unsynced` too, because keyhive's `members()` reports a document's own
-  delegations and those do not change when a group that already has access
-  gains a member.
+  parse reads `no-claim`, and a designated document this device has not
+  synced reads `unsynced` — not evidence either way — until a replica
+  arrives.
 
-That last one is a real gap and worth stating precisely. Fixing the _wording_
-is possible today; fixing the _verdict_ is not. The only evidence available
-about indirect access is `cgkaMembers()`, which returns bare `Identifier`s —
-and `Identifier` carries no access level at all, so it can never satisfy an
-admin minimum. Verifying a nested-group admin needs transitive delegations
-_with_ their capabilities, which no current API exposes.
+The delegation walk is transitive (`docMemberCapabilities`), so an identity
+holding admin through a nested group verifies exactly as a direct admin does,
+at the access its chain actually grants.
 
 Never wrongly verifying while sometimes failing to verify is the right trade
-for a naming system, and the gap above is an instance of that choice rather
-than an exception to it.
+for a naming system.
 
 ## Styling
 
