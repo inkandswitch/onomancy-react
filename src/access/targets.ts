@@ -209,19 +209,10 @@ export function createDocumentTarget(
           };
         });
 
-      // Union, not either-or.
-      //
-      // Returning only `direct` whenever it is non-empty drops everyone whose
-      // access arrives through a group — and `direct` is *always* non-empty,
-      // because this identity is itself a direct member of any document it
-      // can see. So the transitive branch above was unreachable in practice.
-      //
-      // Measured consequence, not a hypothetical: a document's generated
-      // owner group holds Admin and is filtered out just above as machinery.
-      // A person added to that group therefore holds Admin transitively, and
-      // under the old either-or they appeared in no list this component could
-      // render — unshown, and unrevokable through a UI that revokes from
-      // the list it shows.
+      // Union, never either-or: a document's generated owner group holds
+      // Admin and is filtered out just above as machinery, so a person added
+      // to that group holds Admin transitively — and a member list that
+      // omits them is also a revocation UI that cannot revoke them.
       //
       // The group itself stays hidden and its members are shown: the group is
       // machinery, its members are people. That does mean a row can appear

@@ -55,15 +55,9 @@ const STATUS_GLYPH: Record<DnsNameStatus, string> = {
 };
 
 const STATUS_TITLE: Record<DnsNameStatus, string> = {
-  // States what was checked, which is one direction only.
-  //
-  // The old copy read "DNSSEC-verified: this domain designates this
-  // identity", which a reader takes as mutual. It is not: DNS names a
-  // document and this identity administers that document. The **document
-  // has never asserted the domain** — that is the onomancy certificate, and
-  // nothing here consults one. A domain may unilaterally name any document
-  // id, and its admins cannot decline; only their own non-claim keeps this
-  // badge from appearing.
+  // One direction only: DNS names a document this identity administers.
+  // The document has never asserted the domain — that is the certificate,
+  // and nothing here consults one — so the copy must not read as mutual.
   verified:
     "This domain's DNS records are DNSSEC-valid and designate a document that this identity administers. The document has not itself asserted this domain — that needs an onomancy certificate, which this check does not consult.",
   pending: "Checking this domain's DNS binding.",
@@ -72,17 +66,14 @@ const STATUS_TITLE: Record<DnsNameStatus, string> = {
     "This domain publishes two conflicting records of equal precedence, naming different documents. It has not said who it designates, which is not the same as saying it is not this identity.",
   offline:
     "This domain's DNS binding could not be reached. Nothing is proven either way — try again when you are back online.",
-  // Names the remedy, and the remedy is not the network. The old copy for
-  // this case said "could not be resolved", which sent a person to check
-  // their connection over a typo they could see.
+  // Names the remedy, and the remedy is not the network.
   malformed:
     "That is not a valid hostname, so no lookup was possible. Check the spelling of the claim.",
   "no-claim":
     "This domain answered and publishes no usable onomancy record. It is not claiming anyone — that is a statement about the domain, not about this identity.",
-  // Deliberately does not accuse the claimant, and deliberately does not
-  // suggest retrying. A misconfigured zone and active interference look the
-  // same from here, and the safe reading of both is the same: believe
-  // nothing this domain says until it is repaired.
+  // Accuses nobody and suggests no retry: a misconfigured zone and active
+  // interference look the same from here, and the safe reading of both is
+  // to believe nothing this domain says until it is repaired.
   "chain-failed":
     "This domain's DNS records failed cryptographic validation. That is a broken zone or interference with the answer — either way, nothing this domain currently says about anyone can be trusted. This is not a problem with your connection and not a problem with this identity.",
   replayed:

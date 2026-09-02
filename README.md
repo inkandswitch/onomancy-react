@@ -108,7 +108,7 @@ ed25519 verifying key, and the record is validated locally from the IANA root
 ### Where the pieces live
 
 This package keeps the _vocabulary_ and sheds the _mechanism_. The main entry
-point knows what a claim is, what the six statuses mean, and how to render
+point knows what a claim is, what the twelve statuses mean, and how to render
 them; it resolves nothing. Everything that performs DNS lives behind a
 separate import:
 

@@ -211,22 +211,11 @@ export function createOnomancyRuntime(
       }
       if (freshness !== undefined) binding.freshness = freshness;
 
-      // The window and the clock reading are the *inputs* to the grade,
-      // returned beside it so a caller can check the work rather than take
-      // the verdict on faith.
-      //
-      // Both are OPTIONAL and must stay so. This runtime takes an injected
-      // module, so the build in play is whatever the consumer installed, not
-      // whatever we tested against. Observed shapes, by artifact:
-      //
-      //   sha256 2d8eab4f…  { hostname, links, freshness, records, window, checkedAt }
-      //   earlier 0.1.0     { hostname, links, freshness, records }
-      //
-      // The version string was `0.1.0` for both. A reader who checks against
-      // "0.1.0" and finds four keys is not looking at the same artifact, so
-      // the sha is the only identifier that means anything here. Verified
-      // against both: the four-key build yields freshness with the magnitude
-      // fields omitted, and nothing throws.
+      // The window and the clock reading are the inputs to the grade,
+      // returned beside it so a caller can check the work. Both are OPTIONAL
+      // and must stay so: the module is injected, so the build in play is
+      // whatever the consumer installed, and older builds omit these fields.
+      // Absence degrades to "no magnitude", never to a throw.
       const chainWindow = validityWindowOf(outcome);
       const checkedAt = finiteSeconds(
         (outcome as { checkedAt?: unknown } | null)?.checkedAt
@@ -251,17 +240,11 @@ export function createOnomancyRuntime(
     },
 
     normalizeDnsName: (raw) => {
-      // Guarded here rather than left to the module, because the module in
-      // play is whatever the CONSUMER installed. Builds before
-      // sha256 `308b6e30…` trap on a non-string with
-      // `RuntimeError: memory access out of bounds` — an unrecoverable Wasm
-      // fault, not a catchable error. Later builds reject cleanly with
-      // `a name must be a string`.
-      //
-      // A library cannot choose its consumer's build, so the guard stays
-      // even though upstream has since repaired it: for anyone still on an
-      // older artifact this is the difference between a caught error and a
-      // dead module. It costs one `typeof`.
+      // Guarded here rather than left to the module: a library cannot
+      // choose its consumer's build, and older onomancy builds trap on a
+      // non-string with `RuntimeError: memory access out of bounds` — an
+      // unrecoverable Wasm fault, not a catchable error. One `typeof` is the
+      // difference between a caught error and a dead module.
       if (typeof raw !== "string") {
         throw new TypeError(
           `A DNS name claim must be a string, got ${typeof raw}`

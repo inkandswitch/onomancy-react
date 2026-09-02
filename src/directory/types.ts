@@ -35,17 +35,12 @@ export type DirectoryEntryKind = "individual" | "group";
  *   so membership cannot be checked yet. Proves nothing either way.
  * - `invalid`: the claim is not a DNS name at all.
  *
- * ### Why `offline`, `malformed` and `no-claim` are three values
+ * ### Why the non-answers are separate values
  *
- * They were one value, `unreachable`, and that value told every user their
- * network was at fault. A typo and a domain that simply makes no claim both
- * rendered as *"could not reach"*, and the remedy a reader infers from that
- * — retry — helps neither. For a typo the fix is in the input box.
- *
- * The collapse was not a decision anybody made. A directory's vocabulary is
- * *who is this*, so *why could I not tell you* had nowhere to live, and the
- * natural shape discarded it. Splitting the value is what gives the reason
- * somewhere to go.
+ * They carry different remedies — retry, fix the input, tell the domain
+ * owner, wait for a clock, trust nothing from this zone — and the remedy is
+ * the only thing a badge can act on. Collapsing them tells a user with a
+ * typo to check their network.
  *
  * ## Rules for anyone producing a status
  *
@@ -122,9 +117,6 @@ export type DirectoryEntryKind = "individual" | "group";
  * will then be two verifiable claims of different strength, and one glyph
  * cannot carry both. The certificate-backed verdict wants its own status,
  * decided before it exists rather than after.
- *
- * Raised by keyhive-todo-app-demo, from a human asking why a badge
- * check-marks when the document has no reverse binding.
  */
 export type DnsNameStatus =
   | "pending"

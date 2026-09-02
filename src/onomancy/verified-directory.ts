@@ -51,10 +51,8 @@ type Verdict =
  * `verdicts` is the designation layer: does the bound document belong to this
  * identity? That is a question about local keyhive state and the DNS spec has
  * nothing to say about it. It goes stale for an entirely local reason — the
- * document arrives — and can be re-checked today, which is what
- * {@link clearVerificationVerdicts} is for.
- *
- * Holding them in one map made the second look blocked on the first.
+ * document arrives — so {@link clearVerificationVerdicts} re-checks it
+ * without discarding resolutions.
  */
 /**
  * One `subscribe` call.
@@ -267,15 +265,11 @@ export function createOnomancyDirectory(
     const existing = resolutions.get(hostname);
     if (existing) return existing;
 
-    // Decided HERE, from the claim itself, rather than by reading the error
-    // that a query would produce. A syntactically impossible hostname cannot
-    // be looked up, so there is nothing to wait for and no network to blame
-    // — and we can say so without a round trip.
-    //
-    // Deliberately not classified from message text. Two of the strings this
-    // would have matched on changed upstream within one afternoon, so a
-    // classifier built on them would have broken twice in a day. Anything we
-    // cannot determine structurally stays in the conservative bucket.
+    // Decided here, from the claim itself: a syntactically impossible
+    // hostname cannot be looked up, so there is nothing to wait for and no
+    // network to blame. Never classified from message text — error strings
+    // are prose, not a contract; anything not determined structurally stays
+    // in the conservative bucket.
     if (!isSyntacticallyResolvable(hostname)) {
       const malformed: Resolution = { phase: "malformed" };
       resolutions.set(hostname, malformed);
@@ -421,11 +415,10 @@ export function createOnomancyDirectory(
     // collapsed agreeing duplicates, so more than one id means two records
     // of equal precedence name different documents.
     //
-    // This cannot go through `verdictFor`, because every verdict it can
-    // return is an answer about *this entry* — and the zone has not made
-    // one. Routing it there yielded `unknown`, which rendered as `unsynced`:
-    // "wait for a document to arrive", when nothing is arriving and the
-    // remedy belongs to whoever controls the DNS records.
+    // This must not go through `verdictFor`: every verdict it can return is
+    // an answer about *this entry*, and the zone has not made one. The
+    // remedy belongs to whoever controls the DNS records, so the status must
+    // not read as "wait".
     if (resolution.ids.length > 1) {
       return { ...entry, dnsNameStatus: "contested" };
     }

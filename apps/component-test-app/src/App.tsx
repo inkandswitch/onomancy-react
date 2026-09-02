@@ -519,19 +519,12 @@ function NamesSection({
 
   const [query, setQuery] = useState("");
   const [outcome, setOutcome] = useState<Resolution | null>(null);
-  // The hostname this outcome came from, captured at submit rather than read
-  // from `query` at render. The input keeps taking keystrokes while the
-  // resolve is in flight, so reading it later would caption one result with
-  // another name — and this caption makes a security claim, so a mismatched
-  // hostname would be a lie rather than a cosmetic slip.
-  //
-  // This is the WEAKER of the two available fixes, and deliberately marked as
-  // such. keyhive-todo-app-demo derives both the caption and the document it
-  // captions from a single route object read in one render, so the two cannot
-  // disagree — the mismatch is unrepresentable. Here it is merely prevented,
-  // and prevention depends on the next reader noticing why this state exists
-  // rather than reaching for `query`, which nothing in the code stops them
-  // doing. Treat it as a guarded problem, not a solved one.
+  // The hostname this outcome came from, captured at submit — never read
+  // from `query` at render, which keeps taking keystrokes while the resolve
+  // is in flight and would caption one result with another name. The caption
+  // makes a security claim, so a mismatched hostname is a lie, not a slip.
+  // Capture only prevents the mismatch; deriving caption and document from
+  // one route object would make it unrepresentable. Guarded, not solved.
   const [resolvedHostname, setResolvedHostname] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
@@ -639,16 +632,12 @@ function NamesSection({
         </p>
       )}
       {outcome?.status === "resolved" && resolvedHostname !== null && (
-        // Shown only for a resolved `@hostname` route. DNS got us to a
-        // document; it did not show that the document accepts the domain —
-        // that needs the onomancy certificate, and there is no JS API to
-        // obtain one. Certificates travel inside the bound document and
-        // arrive by replication, so the honest verb is *hold*, not *fetch*:
-        // there is no retrieval anywhere in the design to not-yet-do.
-        //
-        // Worded identically in keyhive-todo-app-demo. Two apps disagreeing
-        // about what the same unproven thing means is worse than either
-        // wording alone.
+        // Shown only for a resolved `@hostname` route. DNS reached a
+        // document; nothing proved the document accepts the domain — that
+        // needs the onomancy certificate. Certificates arrive by replication
+        // inside the bound document, so the verb is *hold*, not *fetch*.
+        // The wording is shared with keyhive-todo-app-demo; keep them in
+        // step if it changes.
         <p role="note" className="hint">
           Resolved through DNS. Nothing here proves this document accepts{" "}
           <strong>{resolvedHostname}</strong> — that check needs the onomancy

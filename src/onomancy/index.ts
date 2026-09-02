@@ -3,7 +3,7 @@
  *
  * Imported as `@automerge/keyhive-react/onomancy`, separately from the main
  * entry point. The split follows the domains rather than the layers: the
- * main entry knows what a DNS name claim is and what the six statuses mean,
+ * main entry knows what a DNS name claim is and what the twelve statuses mean,
  * and renders them; everything that *resolves* a name lives here.
  *
  * That makes this subpath optional in practice. An application that

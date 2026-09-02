@@ -24,12 +24,9 @@ test.describe("DNS names verified through onomancy", () => {
     await claimDnsName(page, "@self.test");
     const claimed = badge(page, "@self.test");
     await expect(claimed).toBeVisible();
-    // Asserts the CAVEAT, not the brand word. The tooltip previously read
-    // "DNSSEC-verified: this domain designates this identity", which was
-    // one-directional evidence phrased as mutual consent. Locking the
-    // disclaimer is what stops that regressing: a future edit may reword the
-    // positive half freely, and must not drop the half that says the
-    // document has not spoken.
+    // Assert the caveat, not the brand word: the positive half may be
+    // reworded freely; the half saying the document has not spoken must not
+    // be dropped.
     await expect(claimed).toHaveAttribute("title", /DNSSEC-valid/);
     await expect(claimed).toHaveAttribute(
       "title",
@@ -59,7 +56,7 @@ test.describe("DNS names verified through onomancy", () => {
     await claimDnsName(page, "nowhere.test");
     const claimed = badge(page, "@nowhere.test");
     await expect(claimed).toBeVisible();
-    await expect(claimed).toHaveAttribute("title", /could not be resolved/);
+    await expect(claimed).toHaveAttribute("title", /could not be reached/);
   });
 
   test("a dotless name is rejected before it is stored", async ({ page }) => {

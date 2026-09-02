@@ -35,20 +35,11 @@ export interface DocumentDelegationOptions {
  * question they are asking — including DNS name verification, where the
  * documents come from a domain's `_onomancy` record.
  *
- * The walk is **transitive**: `docMemberCapabilities` expands nested groups
- * and reports each reachable identity with the access its chain actually
- * grants (the minimum along the chain, not the level of the last edge).
- *
- * That is what makes a negative answer meaningful. An earlier version read
- * `document.members()` — direct delegations only — so absence from the list
- * proved nothing, since access might route through a group it did not walk.
- * Every such case had to grade `unknown`, and `unknown` renders as *"not
- * synced yet"*: the badge told people to wait for a document that had
- * already arrived.
- *
- * With a transitive walk, a held document that does not list the identity is
- * **positive evidence of non-membership**, so it grades `insufficient`
- * rather than `unknown`. `unknown` now means what it says: the document is
+ * The walk is transitive: `docMemberCapabilities` expands nested groups and
+ * reports each reachable identity with the access its chain grants (the
+ * minimum along the chain, not the level of the last edge). Because the walk
+ * is complete, a held document that reaches nobody is positive evidence of
+ * non-membership (`insufficient`); `unknown` means only that the document is
  * not here to ask.
  *
  * @example

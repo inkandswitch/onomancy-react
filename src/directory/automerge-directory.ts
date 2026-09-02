@@ -80,24 +80,13 @@ export function createAutomergeDocDirectory(
 
   if (change) {
     directory.publish = (entry: DirectoryEntry) => {
-      // Refused loudly, because `lookup` and `list` already filter this key.
-      //
-      // Without the guard a write under the reserved id **succeeds and then
-      // becomes unreadable**: it lands in the document, and every read path
-      // in this module hides it. A caller sees no entry, retries, and each
-      // attempt writes again into the region onomancy uses for protocol
-      // data.
-      //
-      // The spec reserves that region deliberately — the certificate lives
-      // in the bound document, and *"whoever can write the document holding
-      // it can remove or replace it — a naming-layer capability that [Who
-      // Signs] otherwise reserves to admin-delegated keys"*
-      // (specs/anchoring/dns-anchor.md:225). A profile write must not be a
-      // route to that capability.
-      //
-      // Throwing rather than dropping: a caller publishing under this id has
-      // made a mistake, and a silent no-op is indistinguishable from a write
-      // that worked, given the read paths hide it either way.
+      // Refused loudly. `lookup` and `list` filter this key, so an unguarded
+      // write succeeds and then becomes unreadable — and it lands in the
+      // region onomancy uses for protocol data, where whoever can write can
+      // remove or replace certificates (a capability the spec reserves to
+      // admin-delegated keys; dns-anchor.md §In the Bound Document). Throwing
+      // rather than dropping, because a silent no-op is indistinguishable
+      // from a write that worked when the read paths hide it either way.
       if (entry.id === RESERVED_ONOMANCY_KEY) {
         throw new Error(
           `"${RESERVED_ONOMANCY_KEY}" is reserved for onomancy protocol data and cannot be used as a directory entry id.`
