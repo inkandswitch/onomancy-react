@@ -474,6 +474,71 @@ const U64_MAX = 18446744073709551615n;
  * are exposed to JS this whole function should be deleted rather than
  * maintained.
  */
+// ---- ed25519 point validity (RFC 8032 §5.1.3 decompression) ----------------
+//
+// The grammar requires g= and p= to decode to VALID curve points, not merely
+// 32 bytes: "decoders MUST reject a unit whose key field does not decompress,
+// even where that field is never verified against" (specs/serialization.md).
+// A 32-byte string that cannot denote a key is not the canonical encoding of
+// anything, and parsers that disagree about whether such a record exists
+// diverge on every selection it feeds.
+//
+// Implemented with bare BigInt because this library imports only React: no
+// crypto dependency is available, WebCrypto key import is async (this parser
+// is sync) and its point validation is implementation-defined anyway. This is
+// validity only — no key material is used for anything.
+
+const ED_P = (1n << 255n) - 19n;
+/** -121665/121666 mod p, the curve constant d. */
+const ED_D =
+  37095705934669439343138083508754565189542113879843219016388785533085940283555n;
+
+function modPow(base: bigint, exp: bigint, mod: bigint): bigint {
+  let b = base % mod;
+  if (b < 0n) b += mod;
+  let result = 1n;
+  let e = exp;
+  while (e > 0n) {
+    if (e & 1n) result = (result * b) % mod;
+    b = (b * b) % mod;
+    e >>= 1n;
+  }
+  return result;
+}
+
+/** Whether 32 bytes decompress to a point on the edwards25519 curve. */
+function isCurvePoint(bytes: Uint8Array): boolean {
+  // Little-endian y with the top bit as the x-parity flag.
+  let y = 0n;
+  for (let i = 31; i >= 0; i--) y = (y << 8n) | BigInt(bytes[i]!);
+  const xParity = (y >> 255n) & 1n;
+  y &= (1n << 255n) - 1n;
+  if (y >= ED_P) return false;
+
+  // Solve x^2 = (y^2 - 1) / (d*y^2 + 1).
+  const y2 = (y * y) % ED_P;
+  const u = (y2 - 1n + ED_P) % ED_P;
+  const v = (ED_D * y2 + 1n) % ED_P;
+
+  // Candidate root: x = u * v^3 * (u * v^7)^((p minus 5)/8).
+  const v3 = (v * v * v) % ED_P;
+  const v7 = (v3 * v3 * v) % ED_P;
+  let x = (u * v3 * modPow((u * v7) % ED_P, (ED_P - 5n) / 8n, ED_P)) % ED_P;
+
+  const vx2 = (v * x * x) % ED_P;
+  if (vx2 === u) {
+    // x is the root.
+  } else if (vx2 === (ED_P - u) % ED_P) {
+    x = (x * modPow(2n, (ED_P - 1n) / 4n, ED_P)) % ED_P;
+  } else {
+    return false;
+  }
+
+  // x = 0 cannot carry a sign bit.
+  if (x === 0n && xParity === 1n) return false;
+  return true;
+}
+
 export function parseRecord(record: string): Ono0Record | undefined {
   // A TXT record longer than 255 characters cannot have come from a single
   // conformant character-string; the canonical grammar rejects it outright.
@@ -492,9 +557,11 @@ export function parseRecord(record: string): Ono0Record | undefined {
   if (generationBytes === undefined || generationBytes.length !== 32) {
     return undefined;
   }
+  if (!isCurvePoint(generationBytes)) return undefined;
 
   const bytes = base64ToBytes(match[3]);
   if (bytes === undefined || bytes.length !== 32) return undefined;
+  if (!isCurvePoint(bytes)) return undefined;
 
   return { docIdHex: bytesToHex(bytes), generation: match[2]!, serial };
 }

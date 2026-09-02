@@ -1,11 +1,14 @@
 // Shared ONO0 conformance vectors, authored by keyhive-todo-app-demo from
 // their 34 record tests plus the 2026-09-02 canonical rulings, and destined
 // for onomancy's Rust conformance table. Vendored (not read from the bridge)
-// so the suite is hermetic; provenance sha of the bridged original (rev 2):
-// f35db62be31faaa0ace91724722dbf1c444fad0a02b9b8b8ad96ec3c8fe6d0a2
+// so the suite is hermetic; provenance sha of the bridged original (rev 3):
+// f7ebdb439780e2b1d3d0372d2cb077ed4be2204ccc011e590f3f6caccd0ab3cf
 //
-// Rev 2 fixed the u64-adjacent vector (now carries nowMs) and added three
-// deferral vectors, including the exact-boundary pin (<= bound selects).
+// Rev history: rev 1 caught this parser's lax g= and missing 255-char limit;
+// rev 2 (canonical referee) caught the demo's missing skew deferral; rev 3
+// (reference harness) caught missing point-validity in BOTH parsers and
+// non-point fixture keys in the vectors themselves. Each round's bug was
+// invisible to the previous round's process.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

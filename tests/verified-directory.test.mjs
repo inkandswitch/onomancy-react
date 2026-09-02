@@ -121,3 +121,31 @@ test("contests a rotation tie: same document, different generation keys", async 
   assert.equal(binding.contested, true, "rotation tie must be contested");
   assert.equal(binding.ids.length, 1, "one document, still reported");
 });
+
+test("g= and p= must decompress to ed25519 curve points", async () => {
+  // The ratified grammar: "decoders MUST reject a unit whose key field does
+  // not decompress" (specs/serialization.md). Reference validity table for
+  // fill(32, k) fixtures, from onomancy's harness.
+  const { parseRecord } = await import("../dist/onomancy/index.js");
+  const b64 = (k) => Buffer.from(new Uint8Array(32).fill(k)).toString("base64");
+  const valid = [0, 1, 3, 6, 9, 10, 11, 12, 16];
+  const invalid = [2, 4, 5, 7, 8, 13, 14, 15];
+  for (const k of valid) {
+    assert.ok(
+      parseRecord(`v=ONO0;k=ed25519;n=5;g=${b64(1)};p=${b64(k)}`),
+      `fill(${k}) is a point and must parse`
+    );
+  }
+  for (const k of invalid) {
+    assert.equal(
+      parseRecord(`v=ONO0;k=ed25519;n=5;g=${b64(1)};p=${b64(k)}`),
+      undefined,
+      `fill(${k}) is not a point and must be malformed`
+    );
+    assert.equal(
+      parseRecord(`v=ONO0;k=ed25519;n=5;g=${b64(k)};p=${b64(1)}`),
+      undefined,
+      `non-point g= fill(${k}) must be malformed too`
+    );
+  }
+});
