@@ -421,8 +421,8 @@ export function createOnomancyDirectory(
     // an answer about *this entry*, and the zone has not made one. The
     // remedy belongs to whoever controls the DNS records, so the status must
     // not read as "wait".
-    // Two triggers: distinct documents at the tied top serial (visible in
-    // ids), or same document with different generation keys (visible only in
+    // Two triggers: distinct documents at the tied top serial (shows up in
+    // ids), or same document with different generation keys (carried only by
     // the contested flag the selection set). The second check also keeps
     // custom OnomancyRuntime implementations honest that report multiple ids
     // without the flag.

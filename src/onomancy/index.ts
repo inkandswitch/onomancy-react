@@ -19,7 +19,11 @@
  * still owns the only instance.
  */
 
-export { createOnomancyRuntime, parseRecordDocId } from "./runtime.js";
+export {
+  createOnomancyRuntime,
+  parseRecord,
+  parseRecordDocId,
+} from "./runtime.js";
 export type {
   HostnameBinding,
   OnomancyModule,

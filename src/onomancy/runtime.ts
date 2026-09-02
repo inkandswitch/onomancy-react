@@ -475,11 +475,23 @@ const U64_MAX = 18446744073709551615n;
  * maintained.
  */
 export function parseRecord(record: string): Ono0Record | undefined {
+  // A TXT record longer than 255 characters cannot have come from a single
+  // conformant character-string; the canonical grammar rejects it outright.
+  if (record.length > 255) return undefined;
+
   const match = record.match(ONO0);
   if (!match) return undefined;
 
   const serial = BigInt(match[1]);
   if (serial > U64_MAX) return undefined;
+
+  // g= is constrained identically to p=: it must decode to exactly 32 bytes.
+  // A generation key of any other length is malformed, not lenient-parseable
+  // — the canonical grammar routes both fields through the same decoder.
+  const generationBytes = base64ToBytes(match[2]!);
+  if (generationBytes === undefined || generationBytes.length !== 32) {
+    return undefined;
+  }
 
   const bytes = base64ToBytes(match[3]);
   if (bytes === undefined || bytes.length !== 32) return undefined;
