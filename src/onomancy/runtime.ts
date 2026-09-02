@@ -119,6 +119,12 @@ export interface HostnameBinding {
    */
   serial?: bigint;
   /**
+   * Records of equal top precedence disagree on `(document, generation)`.
+   * The zone has failed to say what it designates; nothing here can be
+   * treated as the binding.
+   */
+  contested?: boolean;
+  /**
    * How many records were set aside for reading too far in the future.
    *
    * Not an error and not a rejection: such a record *ripens*, and the spec
@@ -204,6 +210,7 @@ export function createOnomancyRuntime(
 
       const binding: HostnameBinding = { hostname, ids: selection.ids };
       if (selection.serial !== undefined) binding.serial = selection.serial;
+      if (selection.contested) binding.contested = true;
       if (selection.deferredSerials > 0) {
         binding.deferredSerials = selection.deferredSerials;
       }
@@ -318,6 +325,8 @@ interface RecordSelection {
   ids: string[];
   serial?: bigint;
   deferredSerials: number;
+  /** Records of equal top precedence disagree on (document, generation). */
+  contested?: boolean;
 }
 
 /**
@@ -374,18 +383,21 @@ function boundIdsOf(outcome: unknown, nowMs: bigint): RecordSelection {
 
   const leaders = eligible.filter((record) => record.serial === top);
   const distinct = [...new Set(leaders.map((record) => record.docIdHex))];
+  // Contested-ness is keyed on the pair (document, generation), matching the
+  // reference verifier. Two records naming the same document with different
+  // generation keys at a tied serial are a rotation caught mid-flight; the
+  // one-shot RRset rule has no lineage evidence to order them, so it refuses
+  // rather than picking a generation arbitrarily.
+  const pairs = new Set(
+    leaders.map((record) => record.docIdHex + " " + record.generation)
+  );
 
   // Agreement at the top serial, including the ordinary single-record case.
-  if (distinct.length === 1) {
+  if (pairs.size === 1) {
     return { ids: distinct, serial: top, deferredSerials };
   }
 
-  // Disagreement at the same serial: two records claim to be equally current
-  // and name different documents. There is no ground here for preferring
-  // either — that is the definition of the tie. Returning all of them lets
-  // the caller see a contested binding and refuse it; returning one would
-  // manufacture a verdict the zone does not support.
-  return { ids: distinct, serial: top, deferredSerials };
+  return { ids: distinct, serial: top, deferredSerials, contested: true };
 }
 
 /**
@@ -407,6 +419,17 @@ function freshnessOf(outcome: unknown): ChainFreshness | undefined {
 export interface Ono0Record {
   /** The hex-encoded root document id from `p=`. */
   readonly docIdHex: string;
+  /**
+   * The `g=` generation key, as spelled in the record.
+   *
+   * Part of the zone-state key: contested-ness is decided on the pair
+   * `(document, generation)`, so same-document-different-generation records
+   * tied at the top serial are a rotation caught mid-flight — a contest, not
+   * agreeing duplicates. This matches the reference verifier's
+   * `best_of_document`, where a non-unique undominated set is contested by
+   * construction.
+   */
+  readonly generation: string;
   /**
    * The `n=` serial, as a `BigInt`.
    *
@@ -432,7 +455,7 @@ export interface Ono0Record {
  * we only need the same verdict, not the same diagnosis.
  */
 const ONO0 =
-  /^v=ONO0;k=ed25519;n=(0|[1-9][0-9]{0,19});g=[A-Za-z0-9+/]+={0,2};p=([A-Za-z0-9+/]+={0,2})$/;
+  /^v=ONO0;k=ed25519;n=(0|[1-9][0-9]{0,19});g=([A-Za-z0-9+/]+={0,2});p=([A-Za-z0-9+/]+={0,2})$/;
 
 const U64_MAX = 18446744073709551615n;
 
@@ -458,10 +481,10 @@ export function parseRecord(record: string): Ono0Record | undefined {
   const serial = BigInt(match[1]);
   if (serial > U64_MAX) return undefined;
 
-  const bytes = base64ToBytes(match[2]);
+  const bytes = base64ToBytes(match[3]);
   if (bytes === undefined || bytes.length !== 32) return undefined;
 
-  return { docIdHex: bytesToHex(bytes), serial };
+  return { docIdHex: bytesToHex(bytes), generation: match[2]!, serial };
 }
 
 /** The hex-encoded root document id of one TXT record. See {@link parseRecord}. */

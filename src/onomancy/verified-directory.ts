@@ -19,6 +19,8 @@ type Resolution =
   | {
       phase: "resolved";
       ids: string[];
+      /** Equal-precedence records disagree on (document, generation). */
+      contested?: boolean;
       freshness?: ChainFreshness;
       lapsedSeconds?: number;
     }
@@ -304,6 +306,7 @@ export function createOnomancyDirectory(
             phase: "resolved",
             ids: binding.ids.map(bareId),
           };
+          if (binding.contested) resolved.contested = true;
           if (binding.freshness !== undefined) {
             resolved.freshness = binding.freshness;
           }
@@ -418,7 +421,12 @@ export function createOnomancyDirectory(
     // an answer about *this entry*, and the zone has not made one. The
     // remedy belongs to whoever controls the DNS records, so the status must
     // not read as "wait".
-    if (resolution.ids.length > 1) {
+    // Two triggers: distinct documents at the tied top serial (visible in
+    // ids), or same document with different generation keys (visible only in
+    // the contested flag the selection set). The second check also keeps
+    // custom OnomancyRuntime implementations honest that report multiple ids
+    // without the flag.
+    if (resolution.contested || resolution.ids.length > 1) {
       return { ...entry, dnsNameStatus: "contested" };
     }
 

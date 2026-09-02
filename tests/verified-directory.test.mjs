@@ -7,6 +7,7 @@
 // reverted — these were verified to fail against pre-fix builds.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 
 const {
   createOnomancyDirectory,
@@ -94,4 +95,29 @@ test("two subscriptions sharing one callback survive one unsubscribe", async () 
 
   for (const fn of baseListeners) fn();
   assert.equal(hits, 1, "the surviving subscription still fires");
+});
+
+test("contests a rotation tie: same document, different generation keys", async () => {
+  // Candidate vector for classifyRecords: the old selection keyed ties on
+  // document alone, so this case read as agreeing duplicates and picked a
+  // generation arbitrarily. The reference verifier refuses it.
+  const { createOnomancyRuntime } = await import("../dist/onomancy/index.js");
+  const A = "aa".repeat(32);
+  const b64 = (h) => Buffer.from(h, "hex").toString("base64");
+  const rec = (g) => `v=ONO0;k=ed25519;n=5;g=${g};p=${b64(A)}`;
+  const runtime = createOnomancyRuntime(
+    {
+      resolveHostname: async () => ({
+        records: [rec(b64("11".repeat(32))), rec(b64("22".repeat(32)))],
+      }),
+      Name: class {
+        constructor() {}
+      },
+    },
+    { now: () => 1788000000000 }
+  );
+
+  const binding = await runtime.resolveBoundIds("a.example");
+  assert.equal(binding.contested, true, "rotation tie must be contested");
+  assert.equal(binding.ids.length, 1, "one document, still reported");
 });
