@@ -13,6 +13,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { URL } from "node:url";
+import { Buffer } from "node:buffer";
 
 const { createOnomancyRuntime, parseRecord } =
   await import("../dist/onomancy/index.js");
@@ -23,6 +24,22 @@ const vectors = fs
   .trim()
   .split("\n")
   .map((line) => JSON.parse(line));
+
+// Guard against silent degradation: a truncated or partially-unparsed vector
+// file must fail loudly, not pass vacuously. Counts pinned to rev 3.
+test("vector file carries the full rev 3 corpus", () => {
+  const byKind = {};
+  for (const v of vectors)
+    byKind[v.kind ?? "meta"] = (byKind[v.kind ?? "meta"] ?? 0) + 1;
+  assert.deepEqual(byKind, { meta: 1, parse: 21, classify: 14, nextSerial: 7 });
+  assert.equal(vectors.find((v) => v.kind === "meta")?.revision, 3);
+});
+
+// The meta's document aliases, resolved to the hex ids our API reports.
+const DOC_ALIAS = {
+  doc1: Buffer.from(new Uint8Array(32).fill(1)).toString("hex"),
+  doc2: Buffer.from(new Uint8Array(32).fill(3)).toString("hex"),
+};
 
 const classify = async (records, nowMs) =>
   createOnomancyRuntime(
@@ -47,7 +64,10 @@ for (const v of vectors) {
     });
   } else if (v.kind === "classify") {
     test(`classify: ${v.name}`, async () => {
-      const b = await classify(v.input, v.nowMs ? BigInt(v.nowMs) : undefined);
+      const b = await classify(
+        v.input,
+        v.nowMs !== undefined ? BigInt(v.nowMs) : undefined
+      );
       const status = b.contested
         ? "contested"
         : b.ids.length
@@ -57,13 +77,23 @@ for (const v of vectors) {
       if (v.expected.serial !== undefined) {
         assert.equal(String(b.serial), String(v.expected.serial));
       }
-      if (v.expected.status === "bound") assert.equal(b.ids.length, 1);
+      if (v.expected.status === "bound") {
+        assert.equal(b.ids.length, 1);
+        // The document identity, not just the count: a wire-order-dependent
+        // selection with the right serial passed this suite before this
+        // assertion existed.
+        if (v.expected.document) {
+          const want = DOC_ALIAS[v.expected.document];
+          assert.ok(want, `unknown document alias ${v.expected.document}`);
+          assert.equal(b.ids[0], want);
+        }
+      }
       if (typeof v.expected.documents === "number") {
         assert.equal(b.ids.length, v.expected.documents);
       }
-      if (typeof v.expected.deferred === "number") {
-        assert.equal(b.deferredSerials ?? 0, v.expected.deferred);
-      }
+      // Meta: deferred is 0 when omitted — assert always, not only when set,
+      // so a fabricated deferredSerials on a bound answer cannot survive.
+      assert.equal(b.deferredSerials ?? 0, v.expected.deferred ?? 0);
     });
   }
   // kind === "nextSerial": publisher-side; this library has no publisher.

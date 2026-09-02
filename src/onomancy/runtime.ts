@@ -516,7 +516,7 @@ function modPow(base: bigint, exp: bigint, mod: bigint): bigint {
   return result;
 }
 
-/** Precomputed 2^((p-1)/4), the square-root adjustment factor. */
+/** Precomputed 2^((p minus 1)/4), the square-root adjustment factor. */
 const ED_SQRT_ADJ = modPow(2n, (ED_P - 1n) / 4n, ED_P);
 
 /** Whether 32 bytes decompress to a point on the edwards25519 curve. */
