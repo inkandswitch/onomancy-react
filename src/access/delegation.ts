@@ -35,13 +35,21 @@ export interface DocumentDelegationOptions {
  * question they are asking — including DNS name verification, where the
  * documents come from a domain's `_onomancy` record.
  *
- * Only each document's own delegations are consulted. An identity holding
- * access through a nested group is `unknown`, not `insufficient`, because
- * keyhive's `members()` reports a document's own delegations and those do
- * not change when a group that already has access gains a member. Resolving
- * that needs transitive delegations *with* their capabilities, which no
- * current API exposes: `cgkaMembers()` returns bare `Identifier`s, and
- * `Identifier` carries no access level at all.
+ * The walk is **transitive**: `docMemberCapabilities` expands nested groups
+ * and reports each reachable identity with the access its chain actually
+ * grants (the minimum along the chain, not the level of the last edge).
+ *
+ * That is what makes a negative answer meaningful. An earlier version read
+ * `document.members()` — direct delegations only — so absence from the list
+ * proved nothing, since access might route through a group it did not walk.
+ * Every such case had to grade `unknown`, and `unknown` renders as *"not
+ * synced yet"*: the badge told people to wait for a document that had
+ * already arrived.
+ *
+ * With a transitive walk, a held document that does not list the identity is
+ * **positive evidence of non-membership**, so it grades `insufficient`
+ * rather than `unknown`. `unknown` now means what it says: the document is
+ * not here to ask.
  *
  * @example
  * ```ts
@@ -60,27 +68,25 @@ export async function documentDelegatesTo(
   const minimum = runtime.Access.fromString(options.minimumAccess ?? "admin");
 
   let anyHeld = false;
-  let anyDirectMember = false;
 
   for (const documentId of documentIds) {
-    const document = await hive.keyhive.getDocument(
-      new runtime.DocumentId(hexToBytes(bareId(documentId)))
-    );
+    const docId = new runtime.DocumentId(hexToBytes(bareId(documentId)));
+    const document = await hive.keyhive.getDocument(docId);
     if (!document) continue;
     anyHeld = true;
 
-    for (const capability of await document.members()) {
+    for (const capability of await hive.docMemberCapabilities(docId)) {
       const memberId = bytesToHex(capability.who.id.toBytes());
       if (memberId !== wanted) continue;
-      anyDirectMember = true;
       if (capability.can.atLeast(minimum)) return "delegates";
     }
   }
 
-  // Only a direct delegation below the minimum is insufficient. An unheld
-  // document proves nothing, and neither does absence from the direct
-  // members: access may route through a group this check does not walk.
-  return anyHeld && anyDirectMember ? "insufficient" : "unknown";
+  // A held document that does not reach this identity by any path is
+  // evidence of non-membership, not an absence of evidence — which is only
+  // true because the walk above is transitive. An unheld document still
+  // proves nothing: it is not here to ask.
+  return anyHeld ? "insufficient" : "unknown";
 }
 
 /** Hex ids without an `0x` prefix, lowercased, for comparison. */
