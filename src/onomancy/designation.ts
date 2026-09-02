@@ -34,8 +34,28 @@ export type DnsDesignation = (
 ) => Promise<DesignationVerdict> | DesignationVerdict;
 
 /**
- * The solo case: the bound id is the identity itself. This is the default,
- * and the right check when accounts anchor domains directly to their key.
+ * Plain id equality: the bound id is the identity itself.
+ *
+ * **Not a conformant production check**, and deliberately not the default for
+ * keyhive documents. The onomancy spec is unambiguous that `p=` names a
+ * *document*:
+ *
+ * > `p` MUST be the base64 encoding of the 32-byte root document ID (an
+ * > ed25519 verifying key) — *specs/anchoring/dns-anchor.md:72*
+ *
+ * and that a bare key is not an identity at all:
+ *
+ * > the key alone is not an identity, since the same key bytes may be
+ * > delegated in more than one document — *dns-anchor.md:144*
+ *
+ * So a `p=` naming an individual is a configuration the spec does not
+ * define, and this function grades it `designates` anyway. That is fine for
+ * a **stub or a test**, where the point is a deterministic outcome with no
+ * keyhive documents behind it, and wrong for anything a person reads as
+ * proof: there is no document, so there can be no certificate, so no third
+ * party can be shown why the verdict was reached.
+ *
+ * Use {@link createKeyhiveDesignation} for real bindings.
  *
  * A bound id that is somebody else's `excludes`, because a record naming a
  * different identity is a positive statement about who the domain means.
@@ -54,8 +74,18 @@ export type KeyhiveDesignationOptions = DocumentDelegationOptions;
  * A composition, not an implementation. The DNS half is here; the keyhive
  * half is {@link documentDelegatesTo}, which knows nothing about domains.
  *
- * The solo case is included: a bound id that is the identity itself
- * designates directly, so anchors of either shape verify.
+ * **No solo short-circuit.** An earlier version accepted a `p=` that named
+ * the identity's own key directly, on the reading that a "solo publisher"
+ * may anchor to their key. That conflated two different uses of the word:
+ * the spec's solo allowance is about **`g=`**, permitting a solo publisher's
+ * *generation key* to be their own admin key (`doc → admin`, the chain
+ * trivially passing through) — it is not permission for `p=` to skip the
+ * document.
+ *
+ * A `p=` naming an individual therefore reaches `documentDelegatesTo`, finds
+ * no document under that id, and grades `unknown`: not refuted, not proven.
+ * Which is what it is — a bare key can carry no certificate, so nothing about
+ * it is checkable by anyone but the verifier that computed it.
  *
  * Inherits {@link documentDelegatesTo}'s limit — an identity holding admin
  * through a nested group reads `unknown`, never `excludes`.
@@ -67,8 +97,6 @@ export function createKeyhiveDesignation(
 ): DnsDesignation {
   return async (entry, boundIds) => {
     const identityId = bareId(entry.id);
-    // The domain may anchor the key directly rather than a document.
-    if (boundIds.map(bareId).includes(identityId)) return "designates";
 
     const verdict = await documentDelegatesTo(
       runtime,
