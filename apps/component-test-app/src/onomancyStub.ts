@@ -15,8 +15,13 @@ import type { OnomancyModule } from "@inkandswitch/onomancy-react/onomancy";
 export function createStubOnomancy(selfIdHex: string): OnomancyModule {
   return {
     // The grammar is never stubbed: `.test` hostnames are ordinary DNS
-    // names, so parsing them is the real parser's job either way.
+    // names, so parsing them is the real parser's job either way. The same
+    // goes for the RRset rules and the anchor decoder — the fabricated
+    // `.test` records are grammatical, so the real classifier judges them,
+    // and only resolution itself is ever faked.
     Name: onomancy.Name,
+    classifyRecords: onomancy.classifyRecords,
+    docAnchorBytes: onomancy.docAnchorBytes,
 
     resolveHostname(hostname: string, dohUrl?: string | null) {
       if (!hostname.endsWith(".test")) {
@@ -26,7 +31,12 @@ export function createStubOnomancy(selfIdHex: string): OnomancyModule {
         case "self.test":
           return Promise.resolve(outcome(hostname, selfIdHex));
         case "other.test":
-          return Promise.resolve(outcome(hostname, "ab".repeat(32)));
+          // A valid curve point that is not the local identity: fill(0x03)
+          // is in the conformance vectors' point-validity table. fill bytes
+          // are NOT points in general (~half the byte space is not), and a
+          // non-point p= makes the whole record malformed — which reads as
+          // "publishes no usable record", not as a mismatch.
+          return Promise.resolve(outcome(hostname, "03".repeat(32)));
         default:
           // A plain Error with no `reason` property: the directory's
           // conservative fallback maps it to `offline`, and the e2e

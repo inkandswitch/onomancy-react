@@ -19,11 +19,13 @@
  * still owns the only instance.
  */
 
-export { createOnomancyRuntime, parseRecordDocId } from "./runtime.js";
+export { createOnomancyRuntime } from "./runtime.js";
 export type {
   HostnameBinding,
+  OnomancyClassification,
   OnomancyModule,
   OnomancyName,
+  OnomancyRecordCandidate,
   OnomancyRuntime,
   OnomancyRuntimeOptions,
 } from "./runtime.js";
@@ -37,6 +39,12 @@ export type {
   DnsDesignation,
   KeyhiveDesignationOptions,
 } from "./designation.js";
+
+export { requireReverseBinding } from "./reverse-binding.js";
+export type {
+  ReverseBindingCheck,
+  ReverseBindingClaim,
+} from "./reverse-binding.js";
 
 export {
   clearVerificationCache,

@@ -1,3 +1,4 @@
+import { bareId } from "../access/delegation.js";
 import type {
   DirectoryEntry,
   DnsNameStatus,
@@ -19,6 +20,8 @@ type Resolution =
   | {
       phase: "resolved";
       ids: string[];
+      /** Equal-precedence records disagree on (document, generation). */
+      contested?: boolean;
       freshness?: ChainFreshness;
       lapsedSeconds?: number;
     }
@@ -43,9 +46,11 @@ type Verdict =
  * `resolutions` is the DNS layer: hostname to bound document ids. It is the
  * onomancy spec's *binding cache*, which requires entries to be re-verified
  * at use — a decision that depends on `now`, so memoizing it across time is
- * memoizing a function of an argument that was dropped. Doing that properly
- * needs certificate verification, which the Wasm binding does not expose, so
- * this half stays memoized and the limitation is recorded rather than hidden.
+ * memoizing a function of an argument that was dropped. The Wasm module now
+ * exposes the verification entry points (`verifyCertificate`,
+ * `verifyBinding`), but re-verifying at use also needs the bound documents
+ * held locally, which this wrapper never sees — so this half stays memoized
+ * and the limitation is recorded rather than hidden.
  *
  * `verdicts` is the designation layer: does the bound document belong to this
  * identity? That is a question about local keyhive state and the DNS spec has
@@ -293,17 +298,25 @@ export function createOnomancyDirectory(
               : { phase: "no-claim" }
           );
         } else if (isReplay(hostname, binding)) {
+          // Deliberate ordering: a replayed serial reads `replayed` even if
+          // the replayed set is also contested — the replay is the stronger
+          // statement (this exact data is known superseded).
           // A stale chain bearing a serial no higher than one already
           // accepted for this name. The zone — or something on the path —
           // is serving a record we know to be superseded.
           resolutions.set(hostname, { phase: "replayed" });
         } else {
-          admitToRatchet(hostname, binding);
+          // The ratchet remembers the highest serial ACCEPTED. A contested
+          // set was refused, not accepted: admitting its serial would make a
+          // zone that heals the rotation without bumping the serial read
+          // `replayed` forever on stale chains.
+          if (!binding.contested) admitToRatchet(hostname, binding);
 
           const resolved: Resolution = {
             phase: "resolved",
             ids: binding.ids.map(bareId),
           };
+          if (binding.contested) resolved.contested = true;
           if (binding.freshness !== undefined) {
             resolved.freshness = binding.freshness;
           }
@@ -418,7 +431,12 @@ export function createOnomancyDirectory(
     // an answer about *this entry*, and the zone has not made one. The
     // remedy belongs to whoever controls the DNS records, so the status must
     // not read as "wait".
-    if (resolution.ids.length > 1) {
+    // Two triggers: distinct documents at the tied top serial (shows up in
+    // ids), or same document with different generation keys (carried only by
+    // the contested flag the selection set). The second check also keeps
+    // custom OnomancyRuntime implementations honest that report multiple ids
+    // without the flag.
+    if (resolution.contested || resolution.ids.length > 1) {
       return { ...entry, dnsNameStatus: "contested" };
     }
 
@@ -499,10 +517,6 @@ export function createOnomancyDirectory(
   }
 
   return directory;
-}
-
-function bareId(id: string): string {
-  return (id.startsWith("0x") ? id.slice(2) : id).toLowerCase();
 }
 
 /**

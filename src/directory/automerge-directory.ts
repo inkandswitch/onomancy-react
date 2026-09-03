@@ -48,6 +48,42 @@ const DEFAULT_NOTICE =
   "Names come from a shared document that anyone with its id can edit. They are not verified.";
 
 /**
+ * Whether a top-level key may name a directory entry.
+ *
+ * The flat namestore layout puts names, protocol data, and directory
+ * entries in one shared top-level map, so what is NOT an entry id is
+ * decided here once for the read paths and the publish guard together:
+ * the `.well-known/` prefix (a writers' convention with asserted owners),
+ * and the legacy `onomancy` container during its migration window.
+ */
+function isEntryId(id: string): boolean {
+  return (
+    id !== RESERVED_ONOMANCY_KEY &&
+    id !== ".well-known" &&
+    !id.startsWith(".well-known/")
+  );
+}
+
+/**
+ * Whether a top-level value is a directory entry, by shape.
+ *
+ * The same shared map holds namestore edges (scalar-string wrappers,
+ * which arrive as objects carrying their text in `val`), certificate
+ * lists (arrays), and byte payloads — none of which is an entry, and a
+ * spread of one would mint a junk row. Shape, not key: names are bare
+ * keys, so no key list can enumerate what to skip.
+ */
+function isEntryRecord(value: unknown): value is DirectoryDoc[string] {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Uint8Array) &&
+    !("val" in value)
+  );
+}
+
+/**
  * A directory backed by a single Automerge document, where each peer writes its
  * own entry. Build it with `useAutomergeDocDirectory`.
  */
@@ -65,31 +101,38 @@ export function createAutomergeDocDirectory(
     notice: options.notice ?? DEFAULT_NOTICE,
 
     lookup(id) {
-      if (id === RESERVED_ONOMANCY_KEY) return undefined;
+      if (!isEntryId(id)) return undefined;
       const record = doc?.[id];
-      return record ? { id, ...record } : undefined;
+      return isEntryRecord(record) ? { id, ...record } : undefined;
     },
 
     list() {
       if (!doc) return [];
       return Object.entries(doc)
-        .filter(([id]) => id !== RESERVED_ONOMANCY_KEY)
+        .filter(
+          (pair): pair is [string, DirectoryDoc[string]] =>
+            isEntryId(pair[0]) && isEntryRecord(pair[1])
+        )
         .map(([id, record]) => ({ id, ...record }));
     },
   };
 
   if (change) {
     directory.publish = (entry: DirectoryEntry) => {
-      // Refused loudly. `lookup` and `list` filter this key, so an unguarded
-      // write succeeds and then becomes unreadable — and it lands in the
-      // region onomancy uses for protocol data, where whoever can write can
-      // remove or replace certificates (a capability the spec reserves to
-      // admin-delegated keys; dns-anchor.md §In the Bound Document). Throwing
-      // rather than dropping, because a silent no-op is indistinguishable
-      // from a write that worked when the read paths hide it either way.
-      if (entry.id === RESERVED_ONOMANCY_KEY) {
+      // Refused loudly. `lookup` and `list` filter these keys, so an
+      // unguarded write succeeds and then becomes unreadable — and it lands
+      // in a region another owner defines: `.well-known/<owner>/` carries
+      // protocol and application data by the writers' convention the
+      // path-resolution spec assigns (onomancy's certificate list among it,
+      // where whoever can write can remove or replace certificates — a
+      // capability the spec reserves to admin-delegated keys; dns-anchor.md
+      // §In the Bound Document). The legacy `onomancy` container is guarded
+      // for the same reason during its migration window. Throwing rather
+      // than dropping, because a silent no-op is indistinguishable from a
+      // write that worked when the read paths hide it either way.
+      if (!isEntryId(entry.id)) {
         throw new Error(
-          `"${RESERVED_ONOMANCY_KEY}" is reserved for onomancy protocol data and cannot be used as a directory entry id.`
+          `"${entry.id}" is reserved for protocol data and cannot be used as a directory entry id.`
         );
       }
 
