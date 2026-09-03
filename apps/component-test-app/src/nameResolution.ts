@@ -144,11 +144,10 @@ async function namestoreOf(
  * is not one (E5/E8).
  *
  * Scalar strings (`ImmutableString`, the only encoding a conforming
- * reader matches) and plain JS strings — this app's own pre-migration
- * writes, which Automerge stored as `Text`. The `Text` branch is a
- * KNOWING leniency bounded by behaviour rather than structure (neither
- * app splices edge values); it keeps old edges resolving through the
- * migration window and shares the legacy branch's removal condition.
+ * reader matches) and plain JS strings from legacy data. This leniency is
+ * bounded by behaviour rather than structure (neither app splices edge
+ * values); it keeps old edges resolving through the migration window
+ * and shares the legacy branch's removal condition.
  */
 function edgeUrlOf(value: unknown): AutomergeUrl | undefined {
   const text = isImmutableString(value)
