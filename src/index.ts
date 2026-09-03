@@ -28,13 +28,21 @@ export type {
   DirectoryDocChange,
 } from "./directory/automerge-directory.js";
 export { useAutomergeDocDirectory } from "./directory/useAutomergeDocDirectory.js";
+export { composeDirectories } from "./directory/compose.js";
+export {
+  bindEdge,
+  refuseReservedPath,
+  ReservedPathError,
+  unbindEdge,
+} from "./directory/namestore.js";
+export type { NamestoreWriteDoc, ToReference } from "./directory/namestore.js";
 
 // DNS name verification lives in `@inkandswitch/onomancy-react/onomancy`. This
 // entry point knows what a claim is and how to render one; it does not
 // resolve anything. `DnsNameStatus` carries the rules a status must follow,
 // whoever computes it.
 
-export { documentDelegatesTo } from "./access/delegation.js";
+export { bareId, documentDelegatesTo } from "./access/delegation.js";
 export type {
   DelegationVerdict,
   DocumentDelegationOptions,

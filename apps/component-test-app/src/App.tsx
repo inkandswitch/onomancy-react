@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
+  ImmutableString,
   isValidAutomergeUrl,
   useDocument,
   type AutomergeUrl,
@@ -20,6 +21,7 @@ import {
   bytesToHex,
   CopyableField,
   createDocumentTarget,
+  bindEdge,
   createGroupTarget,
   DirectoryProvider,
   type DirectoryDoc,
@@ -36,16 +38,14 @@ import {
   useOnomancyDirectory,
   type DnsDesignation,
 } from "@inkandswitch/onomancy-react/onomancy";
-import { composeDirectories } from "./composeDirectories";
+
 import { DocumentPanel, LoadDocument } from "./DocumentPanel";
 import {
-  checkSegments,
   hostnameRoot,
   parseLookup,
   resolveLookup,
   type Resolution,
 } from "./nameResolution";
-import { createLocalDirectory } from "./localDirectory";
 import { createStubOnomancy } from "./onomancyStub";
 import { keyhiveRuntime } from "./keyhiveRuntime";
 
@@ -75,9 +75,6 @@ interface AppProps {
  * A test app for the onomancy-react components.
  */
 export default function App({ hive, repo }: AppProps) {
-  // The localStorage copy: always available, never shared.
-  const localDirectory = useMemo(() => createLocalDirectory(), []);
-
   // The shared directory document: the root doc a domain can bind (its id
   // goes in the TXT record's p= field), created on first run or loaded from
   // another profile.
@@ -89,11 +86,13 @@ export default function App({ hive, repo }: AppProps) {
     if (directoryUrl) return;
     let cancelled = false;
     void (async () => {
-      // Seeded with the reserved namestore map: a completely empty initial
-      // document never reaches the ready state in the current stack.
-      const handle = await repo.create2<
-        DirectoryDoc & { onomancy?: Record<string, string> }
-      >({ onomancy: {} });
+      // Seeded with an empty certificate list: a completely empty initial
+      // document never reaches the ready state in the current stack, and
+      // the list is the flat layout's own protocol key — a non-reference
+      // value, absent from name matching and from the directory's entries.
+      const handle = await repo.create2<Record<string, unknown>>({
+        ".well-known/onomancy/certificates": [],
+      });
       await hive.addSyncServerRelayToDoc(handle.url);
       if (!cancelled) {
         localStorage.setItem(DIRECTORY_URL_KEY, handle.url);
@@ -155,14 +154,12 @@ export default function App({ hive, repo }: AppProps) {
     }
   );
 
-  // Reads prefer the shared document, writes go to both.
-  const directory: NameDirectory = useMemo(
-    () =>
-      directoryDoc
-        ? composeDirectories(docDirectory, localDirectory)
-        : localDirectory,
-    [directoryDoc, docDirectory, localDirectory]
-  );
+  // The shared document is the only name store: its local Automerge replica
+  // is already the offline copy, so a second cache would only shadow it.
+  // Before the document is ready, the directory reads empty and reports
+  // non-writable, and the profile editor says so — an honest window, where
+  // a fallback accepted writes nobody else would ever see.
+  const directory: NameDirectory = docDirectory;
 
   // A real app imports @inkandswitch/onomancy here instead of the stub.
   const onomancyRuntime = useMemo(
@@ -188,17 +185,19 @@ export default function App({ hive, repo }: AppProps) {
     designation,
   });
 
-  // Namestore edges: path keys mapping to bare automerge: references under
-  // the reserved key, per the path-resolution spec's namestore layout.
-  // The bind path's anchor selects WHICH namestore the edge is written into:
-  // `~`/bare into our own directory, `@hostname` into whatever root document
-  // the domain designates, `automerge:` into that document directly. Once the
-  // anchor picks the document, the write is identical — anchors only decide
-  // where a walk (or a bind) starts.
+  // Namestore edges: path keys mapping to bare automerge: references in the
+  // document's own top-level map, per the path-resolution spec's namestore
+  // layout (flat, multi-segment keys, shared with protocol and directory
+  // data). The bind path's anchor selects WHICH namestore the edge is
+  // written into: `~`/bare into our own directory, `@hostname` into whatever
+  // root document the domain designates, `automerge:` into that document
+  // directly. Once the anchor picks the document, the write is identical —
+  // anchors only decide where a walk (or a bind) starts.
   const bindName = useCallback(
     async (rawPath: string, url: AutomergeUrl): Promise<string> => {
+      // Segment hygiene comes with the parse: `parseLookup` goes through
+      // the onomancy grammar, so what is bound is exactly what resolves.
       const { root, segments } = parseLookup(rawPath);
-      checkSegments(segments);
       if (segments.length === 0) {
         throw new Error("Nothing to bind: add at least one path segment.");
       }
@@ -220,17 +219,19 @@ export default function App({ hive, repo }: AppProps) {
 
       let handle;
       try {
-        handle = await repo.find<
-          DirectoryDoc & { onomancy?: Record<string, string> }
-        >(targetUrl);
+        handle = await repo.find<Record<string, unknown>>(targetUrl);
       } catch {
         throw new Error(
           `The target namestore is not available locally and could not be fetched from the sync server: ${targetUrl}`
         );
       }
       handle.change((doc) => {
-        doc.onomancy ??= {};
-        doc.onomancy[key] = url;
+        // The library helper carries the layout rules — reserved-path
+        // refusal, the flat top-level write, the legacy-container cleanup.
+        // The scalar-string encoding is ours to inject because it is the
+        // substrate's: a plain JS string assigned into an Automerge map
+        // becomes `Text`, which a conforming reader refuses.
+        bindEdge(doc, key, url, (target) => new ImmutableString(target));
       });
       return spelling;
     },

@@ -1,3 +1,4 @@
+import { bareId } from "../access/delegation.js";
 import type {
   DirectoryEntry,
   DnsNameStatus,
@@ -45,9 +46,11 @@ type Verdict =
  * `resolutions` is the DNS layer: hostname to bound document ids. It is the
  * onomancy spec's *binding cache*, which requires entries to be re-verified
  * at use — a decision that depends on `now`, so memoizing it across time is
- * memoizing a function of an argument that was dropped. Doing that properly
- * needs certificate verification, which the Wasm binding does not expose, so
- * this half stays memoized and the limitation is recorded rather than hidden.
+ * memoizing a function of an argument that was dropped. The Wasm module now
+ * exposes the verification entry points (`verifyCertificate`,
+ * `verifyBinding`), but re-verifying at use also needs the bound documents
+ * held locally, which this wrapper never sees — so this half stays memoized
+ * and the limitation is recorded rather than hidden.
  *
  * `verdicts` is the designation layer: does the bound document belong to this
  * identity? That is a question about local keyhive state and the DNS spec has
@@ -514,10 +517,6 @@ export function createOnomancyDirectory(
   }
 
   return directory;
-}
-
-function bareId(id: string): string {
-  return (id.startsWith("0x") ? id.slice(2) : id).toLowerCase();
 }
 
 /**

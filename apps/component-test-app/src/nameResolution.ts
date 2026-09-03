@@ -1,9 +1,11 @@
 import {
+  isImmutableString,
   isValidAutomergeUrl,
   stringifyAutomergeUrl,
   type AutomergeUrl,
   type Repo,
 } from "@automerge/react/slim";
+import { Name } from "@inkandswitch/onomancy";
 import {
   hexToBytes,
   RESERVED_ONOMANCY_KEY,
@@ -12,10 +14,9 @@ import type { OnomancyRuntime } from "@inkandswitch/onomancy-react/onomancy";
 
 /**
  * The path-resolution walk over locally held documents, per the onomancy
- * path-resolution spec: greedy longest-key matching against the flat
- * namestore map under the reserved key, one hop per matched edge, no
- * backtracking. Partial outcomes are the designed norm under partition,
- * not errors.
+ * path-resolution spec: greedy longest-key matching against the document's
+ * own flat top-level map, one hop per matched edge, no backtracking.
+ * Partial outcomes are the designed norm under partition, not errors.
  */
 
 export type Resolution =
@@ -43,29 +44,41 @@ export interface ParsedLookup {
  * the walk after it is identical.
  */
 export function parseLookup(raw: string): ParsedLookup {
-  let rest = raw.trim();
-  const root: ParsedLookup["root"] = "self";
+  const trimmed = raw.trim();
+  if (trimmed === "") return { root: "self", segments: [] };
 
-  if (rest.startsWith("@")) {
-    const [hostname, ...segments] = rest.slice(1).split("/");
-    if (!hostname || !hostname.includes(".")) {
-      throw new Error(`Not a DNS name: "@${hostname}"`);
+  // A sigil-less string is read as a local name, as a typing convenience;
+  // everything after that convenience is the grammar's. Parsing through
+  // onomancy's own `Name` — the same code that decides names everywhere
+  // else — is what keeps this app from drifting: canonicalization, dotless
+  // names, IP literals, label and segment rules all come from one place.
+  // (The stub never fakes the grammar either; only resolution is faked.)
+  const spelled =
+    trimmed.startsWith("~") ||
+    trimmed.startsWith("@") ||
+    trimmed.startsWith("automerge:")
+      ? trimmed
+      : `~/${trimmed}`;
+
+  const name = new Name(spelled);
+  try {
+    const segments = [...name.segments];
+    switch (name.anchorKind) {
+      case "local":
+        return { root: "self", segments };
+      case "dns":
+        // Printed with its sigil; the hostname is what DNS is asked about.
+        return { root: { hostname: name.anchor.slice(1) }, segments };
+      case "doc":
+        return { root: { url: name.anchor as AutomergeUrl }, segments };
+      default:
+        // The grammar has exactly three anchor kinds. A fourth means this
+        // app and its onomancy disagree about the name grammar.
+        throw new Error(`Unknown anchor kind: "${name.anchorKind}"`);
     }
-    return { root: { hostname: hostname.toLowerCase() }, segments };
+  } finally {
+    name.free();
   }
-
-  if (rest.startsWith("automerge:")) {
-    const [anchor, ...segments] = rest.split("/");
-    if (!isValidAutomergeUrl(anchor)) {
-      throw new Error(`Not a document anchor: "${anchor}"`);
-    }
-    return { root: { url: anchor }, segments };
-  }
-
-  if (rest === "~") return { root, segments: [] };
-  if (rest.startsWith("~/")) rest = rest.slice(2);
-  if (rest === "") return { root, segments: [] };
-  return { root, segments: rest.split("/") };
 }
 
 /** The Automerge URL for a hex-encoded 32-byte document id. */
@@ -73,19 +86,6 @@ export function urlFromDocIdHex(hex: string): AutomergeUrl {
   return stringifyAutomergeUrl(
     hexToBytes(hex) as Parameters<typeof stringifyAutomergeUrl>[0]
   );
-}
-
-/** Segment hygiene per the name grammar: reject rather than normalize. */
-export function checkSegments(segments: string[]): void {
-  for (const segment of segments) {
-    if (segment === "") throw new Error("Empty segment.");
-    if (segment === "." || segment === "..") {
-      throw new Error("No traversal segments.");
-    }
-    if (/[#/\p{Cc}]/u.test(segment)) {
-      throw new Error(`Invalid segment: "${segment}"`);
-    }
-  }
 }
 
 /** The namestore edges of one held document, malformed values absent. */
@@ -101,18 +101,62 @@ async function namestoreOf(
     return undefined;
   }
   if (typeof doc !== "object" || doc === null) return undefined;
-  const map = (doc as Record<string, unknown>)[RESERVED_ONOMANCY_KEY];
-  if (typeof map !== "object" || map === null) return {};
 
+  // The document's own top-level map IS the namestore (flat layout). Bare
+  // references only: anything else is absent (E5) — which is also what
+  // keeps directory entries, certificate lists, and other protocol data
+  // out of the walk without any key registry — and malformed keys never
+  // match already-valid segments (E6).
   const edges: Record<string, AutomergeUrl> = {};
-  for (const [key, value] of Object.entries(map)) {
-    // Bare references only: anything else is absent (E5), and malformed
-    // keys never match already-valid segments (E6).
-    if (typeof value === "string" && isValidAutomergeUrl(value)) {
-      edges[key] = value;
+  for (const [key, value] of Object.entries(doc)) {
+    const target = edgeUrlOf(value);
+    if (target !== undefined) edges[key] = target;
+  }
+
+  // The legacy nested layout, resolved as a fallback during the migration
+  // window: a flat edge shadows a nested one at the same path, rebinding
+  // migrates a path for free, and the branch's removal condition is that
+  // no namestore in use still holds a nested edge — the log keeps such
+  // documents visible.
+  const legacy = (doc as Record<string, unknown>)[RESERVED_ONOMANCY_KEY];
+  if (typeof legacy === "object" && legacy !== null) {
+    const inherited: string[] = [];
+    for (const [key, value] of Object.entries(legacy)) {
+      const target = edgeUrlOf(value);
+      if (target !== undefined && !(key in edges)) {
+        edges[key] = target;
+        inherited.push(key);
+      }
+    }
+    if (inherited.length > 0) {
+      console.warn(
+        `onomancy: ${url} still resolves ${inherited.length} edge(s) from the legacy nested layout (${inherited.join(
+          ", "
+        )}); rebind them or migrate — conforming resolvers cannot see them`
+      );
     }
   }
   return edges;
+}
+
+/**
+ * The reference a namestore value carries, or `undefined` when the value
+ * is not one (E5/E8).
+ *
+ * Scalar strings (`ImmutableString`, the only encoding a conforming
+ * reader matches) and plain JS strings — this app's own pre-migration
+ * writes, which Automerge stored as `Text`. The `Text` branch is a
+ * KNOWING leniency bounded by behaviour rather than structure (neither
+ * app splices edge values); it keeps old edges resolving through the
+ * migration window and shares the legacy branch's removal condition.
+ */
+function edgeUrlOf(value: unknown): AutomergeUrl | undefined {
+  const text = isImmutableString(value)
+    ? value.val
+    : typeof value === "string"
+      ? value
+      : undefined;
+  return text !== undefined && isValidAutomergeUrl(text) ? text : undefined;
 }
 
 /** Greedy longest-key match: the most segments, at segment boundaries. */
@@ -132,14 +176,16 @@ function longestMatch(
   return best;
 }
 
-/** Resolve segments from a root document. No backtracking, live reads. */
+/**
+ * Resolve segments from a root document. No backtracking, live reads.
+ * Segment hygiene is `parseLookup`'s (the grammar's): every caller's
+ * segments come out of a parsed name.
+ */
 export async function resolvePath(
   repo: Repo,
   root: AutomergeUrl,
   segments: string[]
 ): Promise<Resolution> {
-  checkSegments(segments);
-
   let current = root;
   let consumed = 0;
   const total = segments.length;
